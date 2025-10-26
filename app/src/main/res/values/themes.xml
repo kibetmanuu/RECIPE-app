@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Base application theme -->
+    <style name="Theme.Recipe" parent="Theme.Material3.DayNight">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/recipe_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/recipe_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/recipe_on_primary_container</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/recipe_secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/recipe_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/recipe_on_secondary_container</item>
+
+        <!-- Tertiary brand color -->
+        <item name="colorTertiary">@color/recipe_tertiary</item>
+        <item name="colorOnTertiary">@color/white</item>
+        <item name="colorTertiaryContainer">@color/recipe_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/recipe_on_tertiary_container</item>
+
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/recipe_background</item>
+        <item name="colorOnBackground">@color/recipe_on_background</item>
+        <item name="colorSurface">@color/recipe_surface</item>
+        <item name="colorOnSurface">@color/recipe_on_surface</item>
+
+        <!-- Status bar color - Use colorPrimary instead of deprecated colorPrimaryVariant -->
+        <item name="android:statusBarColor">?attr/colorPrimary</item>
+
+        <!-- Enable edge-to-edge -->
+        <item name="android:windowLightStatusBar" tools:targetApi="23">true</item>
+    </style>
+
+    <!-- Theme variant for splash/welcome screens -->
+    <style name="Theme.Recipe.Splash" parent="Theme.Recipe">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+
+</resources>

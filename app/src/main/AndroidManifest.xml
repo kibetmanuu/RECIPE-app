@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/recipe"
+        android:label="@string/app_name"
+        android:roundIcon="@drawable/recipe"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Recipe"
+
+        tools:targetApi="31">
+
+
+        <!-- Welcome Activity - Launch Activity -->
+        <activity
+            android:name=".ui.activities.WelcomeActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Recipe">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Get Started Activity -->
+        <activity
+            android:name=".ui.activities.GetStartedActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Recipe" />
+
+        <!-- Main Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Recipe" />
+        <activity
+            android:name=".ui.activities.RecipeDetailActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.activities.FavoriteActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Recipe" />
+
+    </application>
+
+</manifest>

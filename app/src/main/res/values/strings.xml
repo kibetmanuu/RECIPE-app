@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">RECIPE</string>
+    <string name="app_logo_description">Recipe App Logo</string>
+    <string name="welcome_tagline">Discover Your Culinary Journey</string>
+    <string name="welcome_description">Explore thousands of recipes, create your own masterpieces, and share with fellow food lovers</string>
+    <string name="feature_discover">Discover</string>
+    <string name="feature_create">Create</string>
+    <string name="feature_share">Share</string>
+    <string name="get_started">Get Started</string>
+    <string name="skip_for_now">Skip for now</string>
+    <string name="terms_privacy_note">By continuing, you agree to our Terms of Service and Privacy Policy</string>
+
+</resources>

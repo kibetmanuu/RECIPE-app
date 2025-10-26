@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Recipe App Color Palette -->
+
+    <!-- Primary Colors (Main brand color - cooking/food themed) -->
+    <color name="recipe_primary">#FF8A50</color>              <!-- Warm orange -->
+    <color name="recipe_primary_container">#FFE0CC</color>     <!-- Light orange -->
+    <color name="recipe_on_primary_container">#5D2A00</color>  <!-- Dark brown -->
+
+    <!-- Secondary Colors (Complementary colors) -->
+    <color name="recipe_secondary">#6B8E23</color>             <!-- Olive green -->
+    <color name="recipe_secondary_container">#E8F5D0</color>   <!-- Light green -->
+    <color name="recipe_on_secondary_container">#2D4016</color><!-- Dark green -->
+
+    <!-- Tertiary Colors (Accent colors) -->
+    <color name="recipe_tertiary">#D4AF37</color>              <!-- Golden yellow -->
+    <color name="recipe_tertiary_container">#FFF8DC</color>    <!-- Cream -->
+    <color name="recipe_on_tertiary_container">#3D2F00</color> <!-- Dark yellow -->
+
+    <!-- Background Colors -->
+    <color name="recipe_background">#FFFBF7</color>            <!-- Warm white -->
+    <color name="recipe_on_background">#201A17</color>         <!-- Dark text -->
+    <color name="recipe_surface">#FFFFFF</color>               <!-- Pure white -->
+    <color name="recipe_on_surface">#201A17</color>            <!-- Dark text -->
+
+    <!-- Standard Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+
+    <!-- Error Colors -->
+    <color name="recipe_error">#BA1A1A</color>
+    <color name="recipe_on_error">#FFFFFF</color>
+    <color name="recipe_error_container">#FFDAD6</color>
+    <color name="recipe_on_error_container">#410002</color>
+
+    <!-- Additional utility colors for recipe app -->
+    <color name="ingredient_background">#F5F5F5</color>
+    <color name="step_background">#FAFAFA</color>
+    <color name="divider_color">#E0E0E0</color>
+    <color name="text_hint">#9E9E9E</color>
+
+    <!-- Primary color for compatibility -->
+    <color name="colorPrimary">#FF8A50</color>
+</resources>
