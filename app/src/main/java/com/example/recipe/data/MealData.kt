@@ -2,125 +2,180 @@ package com.example.recipe.data
 
 import com.google.gson.annotations.SerializedName
 
-// Response wrapper
-data class MealResponse(
-    @SerializedName("meals")
-    val meals: List<MealData>?
+// Spoonacular Recipe Search Response
+data class SpoonacularSearchResponse(
+    @SerializedName("results")
+    val results: List<SpoonacularRecipe>?,
+    @SerializedName("offset")
+    val offset: Int,
+    @SerializedName("number")
+    val number: Int,
+    @SerializedName("totalResults")
+    val totalResults: Int
 )
 
-// Individual meal data from TheMealDB
-data class MealData(
-    @SerializedName("idMeal")
-    val idMeal: String,
+// Spoonacular Recipe (simplified for search results)
+data class SpoonacularRecipe(
+    @SerializedName("id")
+    val id: Int,
+    @SerializedName("title")
+    val title: String,
+    @SerializedName("image")
+    val image: String?,
+    @SerializedName("imageType")
+    val imageType: String?
+)
 
-    @SerializedName("strMeal")
-    val strMeal: String,
+// Spoonacular Detailed Recipe Information
+data class SpoonacularRecipeDetail(
+    @SerializedName("id")
+    val id: Int,
 
-    @SerializedName("strDrinkAlternate")
-    val strDrinkAlternate: String?,
+    @SerializedName("title")
+    val title: String,
 
-    @SerializedName("strCategory")
-    val strCategory: String,
+    @SerializedName("image")
+    val image: String?,
 
-    @SerializedName("strArea")
-    val strArea: String,
+    @SerializedName("servings")
+    val servings: Int?,
 
-    @SerializedName("strInstructions")
-    val strInstructions: String,
+    @SerializedName("readyInMinutes")
+    val readyInMinutes: Int?,
 
-    @SerializedName("strMealThumb")
-    val strMealThumb: String,
+    @SerializedName("cookingMinutes")
+    val cookingMinutes: Int?,
 
-    @SerializedName("strTags")
-    val strTags: String?,
+    @SerializedName("preparationMinutes")
+    val preparationMinutes: Int?,
 
-    @SerializedName("strYoutube")
-    val strYoutube: String?,
+    @SerializedName("summary")
+    val summary: String?,
 
-    // Ingredients (TheMealDB has up to 20 ingredients)
-    @SerializedName("strIngredient1")
-    val strIngredient1: String?,
-    @SerializedName("strIngredient2")
-    val strIngredient2: String?,
-    @SerializedName("strIngredient3")
-    val strIngredient3: String?,
-    @SerializedName("strIngredient4")
-    val strIngredient4: String?,
-    @SerializedName("strIngredient5")
-    val strIngredient5: String?,
-    @SerializedName("strIngredient6")
-    val strIngredient6: String?,
-    @SerializedName("strIngredient7")
-    val strIngredient7: String?,
-    @SerializedName("strIngredient8")
-    val strIngredient8: String?,
-    @SerializedName("strIngredient9")
-    val strIngredient9: String?,
-    @SerializedName("strIngredient10")
-    val strIngredient10: String?,
+    @SerializedName("cuisines")
+    val cuisines: List<String>?,
 
-    // Measurements
-    @SerializedName("strMeasure1")
-    val strMeasure1: String?,
-    @SerializedName("strMeasure2")
-    val strMeasure2: String?,
-    @SerializedName("strMeasure3")
-    val strMeasure3: String?,
-    @SerializedName("strMeasure4")
-    val strMeasure4: String?,
-    @SerializedName("strMeasure5")
-    val strMeasure5: String?,
-    @SerializedName("strMeasure6")
-    val strMeasure6: String?,
-    @SerializedName("strMeasure7")
-    val strMeasure7: String?,
-    @SerializedName("strMeasure8")
-    val strMeasure8: String?,
-    @SerializedName("strMeasure9")
-    val strMeasure9: String?,
-    @SerializedName("strMeasure10")
-    val strMeasure10: String?
+    @SerializedName("dishTypes")
+    val dishTypes: List<String>?,
+
+    @SerializedName("diets")
+    val diets: List<String>?,
+
+    @SerializedName("instructions")
+    val instructions: String?,
+
+    @SerializedName("extendedIngredients")
+    val extendedIngredients: List<ExtendedIngredient>?,
+
+    @SerializedName("sourceUrl")
+    val sourceUrl: String?,
+
+    @SerializedName("spoonacularSourceUrl")
+    val spoonacularSourceUrl: String?,
+
+    @SerializedName("cheap")
+    val cheap: Boolean?,
+
+    @SerializedName("healthScore")
+    val healthScore: Double?,
+
+    @SerializedName("vegan")
+    val vegan: Boolean?,
+
+    @SerializedName("vegetarian")
+    val vegetarian: Boolean?,
+
+    @SerializedName("glutenFree")
+    val glutenFree: Boolean?,
+
+    @SerializedName("dairyFree")
+    val dairyFree: Boolean?
 ) {
-    // Convert to DetailedRecipe with ingredients and measurements
+    // Convert to DetailedRecipe
     fun toDetailedRecipe(): DetailedRecipe {
-        val ingredientsWithMeasurements = mutableListOf<String>()
+        val ingredientsList = extendedIngredients?.map { ingredient ->
+            "${ingredient.measures?.metric?.amount ?: ""} ${ingredient.measures?.metric?.unitShort ?: ""} ${ingredient.name}".trim()
+        } ?: emptyList()
 
-        // Combine ingredients with their measurements
-        listOf(
-            strIngredient1 to strMeasure1,
-            strIngredient2 to strMeasure2,
-            strIngredient3 to strMeasure3,
-            strIngredient4 to strMeasure4,
-            strIngredient5 to strMeasure5,
-            strIngredient6 to strMeasure6,
-            strIngredient7 to strMeasure7,
-            strIngredient8 to strMeasure8,
-            strIngredient9 to strMeasure9,
-            strIngredient10 to strMeasure10
-        ).forEach { (ingredient, measure) ->
-            if (!ingredient.isNullOrBlank()) {
-                val measurement = if (!measure.isNullOrBlank()) "$measure " else ""
-                ingredientsWithMeasurements.add("$measurement$ingredient".trim())
-            }
-        }
+        val category = dishTypes?.firstOrNull() ?: "Main Course"
+        val area = cuisines?.firstOrNull() ?: "International"
+        val cookTime = readyInMinutes?.let { "$it mins" } ?: "30-45 mins"
+
+        // Create tags from diets and dish types
+        val tagsList = mutableListOf<String>()
+        diets?.let { tagsList.addAll(it) }
+        if (vegan == true) tagsList.add("Vegan")
+        if (vegetarian == true) tagsList.add("Vegetarian")
+        if (glutenFree == true) tagsList.add("Gluten Free")
+        if (dairyFree == true) tagsList.add("Dairy Free")
 
         return DetailedRecipe(
-            id = idMeal,
-            name = strMeal,
-            description = "$strCategory • $strArea cuisine",
-            cookingTime = "30-45 mins",
-            imageUrl = strMealThumb,
-            category = strCategory,
-            area = strArea,
-            instructions = strInstructions,
-            ingredients = ingredientsWithMeasurements,
-            youtubeUrl = strYoutube,
-            tags = strTags?.split(",")?.map { it.trim() } ?: emptyList()
+            id = id.toString(),
+            name = title,
+            description = "$category • $area cuisine",
+            cookingTime = cookTime,
+            imageUrl = image ?: "",
+            category = category,
+            area = area,
+            instructions = instructions ?: summary ?: "",
+            ingredients = ingredientsList,
+            youtubeUrl = null,
+            tags = tagsList
         )
     }
 }
 
-// Updated Recipe data class for your app (for list display)
+// Extended Ingredient from Spoonacular
+data class ExtendedIngredient(
+    @SerializedName("id")
+    val id: Int?,
+
+    @SerializedName("aisle")
+    val aisle: String?,
+
+    @SerializedName("image")
+    val image: String?,
+
+    @SerializedName("name")
+    val name: String,
+
+    @SerializedName("original")
+    val original: String?,
+
+    @SerializedName("originalName")
+    val originalName: String?,
+
+    @SerializedName("amount")
+    val amount: Double?,
+
+    @SerializedName("unit")
+    val unit: String?,
+
+    @SerializedName("measures")
+    val measures: Measures?
+)
+
+// Measurement details
+data class Measures(
+    @SerializedName("us")
+    val us: Measurement?,
+
+    @SerializedName("metric")
+    val metric: Measurement?
+)
+
+data class Measurement(
+    @SerializedName("amount")
+    val amount: Double?,
+
+    @SerializedName("unitShort")
+    val unitShort: String?,
+
+    @SerializedName("unitLong")
+    val unitLong: String?
+)
+
+// Recipe data class for your app (for list display)
 data class Recipe(
     val id: String,
     val name: String,
@@ -149,31 +204,38 @@ data class DetailedRecipe(
     val tags: List<String> = emptyList()
 )
 
-// Extension function to convert MealData to Recipe (for list display)
-fun MealData.toRecipe(): Recipe {
-    val ingredients = listOfNotNull(
-        strIngredient1?.takeIf { it.isNotBlank() },
-        strIngredient2?.takeIf { it.isNotBlank() },
-        strIngredient3?.takeIf { it.isNotBlank() },
-        strIngredient4?.takeIf { it.isNotBlank() },
-        strIngredient5?.takeIf { it.isNotBlank() },
-        strIngredient6?.takeIf { it.isNotBlank() },
-        strIngredient7?.takeIf { it.isNotBlank() },
-        strIngredient8?.takeIf { it.isNotBlank() },
-        strIngredient9?.takeIf { it.isNotBlank() },
-        strIngredient10?.takeIf { it.isNotBlank() }
+// Extension function to convert SpoonacularRecipe to Recipe (for list display)
+fun SpoonacularRecipe.toRecipe(): Recipe {
+    return Recipe(
+        id = id.toString(),
+        name = title,
+        description = "Recipe",
+        cookingTime = "30-45 mins",
+        imageUrl = image ?: "",
+        category = "",
+        area = "",
+        instructions = "",
+        ingredients = emptyList(),
+        youtubeUrl = null
     )
+}
+
+// Extension function to convert SpoonacularRecipeDetail to Recipe (for list display)
+fun SpoonacularRecipeDetail.toRecipe(): Recipe {
+    val category = dishTypes?.firstOrNull() ?: "Main Course"
+    val area = cuisines?.firstOrNull() ?: "International"
+    val cookTime = readyInMinutes?.let { "$it mins" } ?: "30-45 mins"
 
     return Recipe(
-        id = idMeal,
-        name = strMeal,
-        description = "$strCategory • $strArea cuisine",
-        cookingTime = "30-45 mins", // TheMealDB doesn't provide cooking time
-        imageUrl = strMealThumb,
-        category = strCategory,
-        area = strArea,
-        instructions = strInstructions,
-        ingredients = ingredients,
-        youtubeUrl = strYoutube
+        id = id.toString(),
+        name = title,
+        description = "$category • $area cuisine",
+        cookingTime = cookTime,
+        imageUrl = image ?: "",
+        category = category,
+        area = area,
+        instructions = instructions ?: "",
+        ingredients = extendedIngredients?.map { it.original ?: it.name } ?: emptyList(),
+        youtubeUrl = null
     )
 }

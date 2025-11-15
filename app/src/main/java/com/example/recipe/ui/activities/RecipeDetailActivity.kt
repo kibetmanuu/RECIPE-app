@@ -6,25 +6,17 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -39,20 +32,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.recipe.R
 import coil.compose.AsyncImage
 import com.example.recipe.data.DetailedRecipe
 import com.example.recipe.ui.theme.RecipeTheme
 import com.example.recipe.viewmodel.RecipeDetailViewModel
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.Image
 
 class RecipeDetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val recipeId = intent.getStringExtra("RECIPE_ID") ?: ""
-        val recipeName = intent.getStringExtra("RECIPE_NAME") ?: ""
+        val recipeName = intent.getStringExtra("RECIPE_NAME") ?: "Recipe"
 
         setContent {
             RecipeTheme {
@@ -79,468 +75,520 @@ fun RecipeDetailScreen(
 ) {
     val context = LocalContext.current
     val uiState = viewModel.uiState
-
-    // Simple favorite state management using SharedPreferences
     var isFavorite by remember { mutableStateOf(false) }
+    var showNutritionSheet by remember { mutableStateOf(false) }
 
-    // Load favorite state from SharedPreferences
     LaunchedEffect(recipeId) {
         val prefs = context.getSharedPreferences("recipe_favorites", Context.MODE_PRIVATE)
         isFavorite = prefs.getBoolean(recipeId, false)
         viewModel.loadRecipeDetails(recipeId)
     }
 
-    // Function to toggle favorite
     fun toggleFavorite() {
         val prefs = context.getSharedPreferences("recipe_favorites", Context.MODE_PRIVATE)
-        val newFavoriteState = !isFavorite
+        val newState = !isFavorite
+        prefs.edit().putBoolean(recipeId, newState).apply()
 
-        prefs.edit().putBoolean(recipeId, newFavoriteState).apply()
-        isFavorite = newFavoriteState
-
-        // Optional: Save additional recipe data for favorites list
-        if (newFavoriteState && uiState.recipe != null) {
+        if (newState && uiState.recipe != null) {
             val recipe = uiState.recipe
             prefs.edit()
                 .putString("${recipeId}_name", recipe.name)
                 .putString("${recipeId}_image", recipe.imageUrl)
                 .putString("${recipeId}_category", recipe.category)
                 .putString("${recipeId}_area", recipe.area)
+                .putString("${recipeId}_description", recipe.description)
+                .putString("${recipeId}_cookingTime", recipe.cookingTime)
                 .putLong("${recipeId}_date_added", System.currentTimeMillis())
                 .apply()
         }
+        isFavorite = newState
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Top App Bar
-        TopAppBar(
-            title = {
-                Text(
-                    text = recipeName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            },
-            navigationIcon = {
-                IconButton(
-                    onClick = { (context as ComponentActivity).finish() }
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back"
-                    )
-                }
-            },
-            actions = {
-                // Updated Favorite Button
-                IconButton(
-                    onClick = { toggleFavorite() }
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Toggle Favorite",
-                        tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                // Share Button
-                IconButton(
-                    onClick = {
-                        uiState.recipe?.let { recipe ->
-                            val shareText = buildString {
-                                appendLine("🍽️ ${recipe.name}")
-                                appendLine()
-                                appendLine("📍 Category: ${recipe.category}")
-                                appendLine("🌍 Cuisine: ${recipe.area}")
-                                appendLine()
-                                appendLine("📝 Ingredients:")
-                                recipe.ingredients.forEach { ingredient ->
-                                    appendLine("• $ingredient")
-                                }
-                                appendLine()
-                                appendLine("👨‍🍳 Instructions:")
-                                appendLine(recipe.instructions)
-
-                                if (!recipe.youtubeUrl.isNullOrBlank()) {
-                                    appendLine()
-                                    appendLine("📹 Watch Tutorial: ${recipe.youtubeUrl}")
-                                }
-
-                                if (recipe.tags.isNotEmpty()) {
-                                    appendLine()
-                                    appendLine("🏷️ Tags: ${recipe.tags.joinToString(", ")}")
-                                }
-
-                                appendLine()
-                                appendLine("🖼️ Recipe Image: ${recipe.imageUrl}")
-                            }
-
-                            val intent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                                putExtra(Intent.EXTRA_SUBJECT, "Recipe: ${recipe.name}")
-                            }
-
-                            val chooser = Intent.createChooser(intent, "Share Recipe")
-                            context.startActivity(chooser)
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share Recipe"
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                titleContentColor = Color.White,
-                navigationIconContentColor = Color.White,
-                actionIconContentColor = Color.White
+    Scaffold(
+        topBar = {
+            EnhancedDetailTopBar(
+                recipeName = recipeName,
+                isFavorite = isFavorite,
+                onBackClick = { (context as ComponentActivity).finish() },
+                onFavoriteClick = { toggleFavorite() },
+                onShareClick = { shareRecipe(context, uiState.recipe) }
             )
-        )
-
-        // Content based on state
-        when {
-            uiState.isLoading -> {
-                LoadingContent()
-            }
-            uiState.error != null -> {
-                ErrorContent(
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.padding(paddingValues)) {
+            when {
+                uiState.isLoading -> EnhancedLoadingContent()
+                uiState.error != null -> EnhancedErrorContent(
                     error = uiState.error,
                     onRetry = { viewModel.loadRecipeDetails(recipeId) },
                     onDismiss = { viewModel.clearError() }
                 )
-            }
-            uiState.recipe != null -> {
-                RecipeDetailContent(recipe = uiState.recipe)
-            }
-        }
-    }
-}
-
-@Composable
-fun SimpleRecipeSlideshow(
-    recipe: DetailedRecipe,
-    modifier: Modifier = Modifier,
-    autoScrollDelay: Long = 3000L // 3 seconds
-) {
-    // Create a list with the main image and some cooking-related placeholder images
-    val imageList = remember(recipe) {
-        mutableListOf<String>().apply {
-            add(recipe.imageUrl) // Original TheMealDB image
-
-            // Add some cooking-related placeholder images based on category
-            when (recipe.category.lowercase()) {
-                "dessert" -> {
-                    add("https://images.unsplash.com/photo-1551024506-0bccd828d307") // Baking
-                    add("https://images.unsplash.com/photo-1578985545062-69928b1d9587") // Dessert
-                }
-                "chicken" -> {
-                    add("https://images.unsplash.com/photo-1532550907401-a500c9a57435") // Cooking
-                    add("https://images.unsplash.com/photo-1606728035253-49e8a23146de") // Chicken dish
-                }
-                "seafood" -> {
-                    add("https://images.unsplash.com/photo-1544943910-4c1dc44aab44") // Seafood
-                    add("https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62") // Fish cooking
-                }
-                "vegetarian" -> {
-                    add("https://images.unsplash.com/photo-1540420773420-3366772f4999") // Vegetables
-                    add("https://images.unsplash.com/photo-1512621776951-a57141f2eefd") // Salad
-                }
-                else -> {
-                    // Generic cooking images
-                    add("https://images.unsplash.com/photo-1556909114-f6e7ad7d3136") // Kitchen
-                    add("https://images.unsplash.com/photo-1556908114-4d4d6dea2b6d") // Cooking process
-                }
-            }
-        }
-    }
-
-    var currentImageIndex by remember { mutableIntStateOf(0) }
-
-    // Auto-scroll effect
-    LaunchedEffect(currentImageIndex, imageList.size) {
-        if (imageList.size > 1) {
-            delay(autoScrollDelay)
-            currentImageIndex = (currentImageIndex + 1) % imageList.size
-        }
-    }
-
-    // Only show slideshow if we have more than one image
-    if (imageList.size > 1) {
-        Box(
-            modifier = modifier.clip(RoundedCornerShape(16.dp))
-        ) {
-            // Current image with crossfade animation
-            AnimatedContent(
-                targetState = currentImageIndex,
-                transitionSpec = {
-                    fadeIn(animationSpec = tween(800)) togetherWith
-                            fadeOut(animationSpec = tween(800))
-                },
-                label = "image_transition"
-            ) { imageIndex ->
-                AsyncImage(
-                    model = imageList[imageIndex],
-                    contentDescription = "Recipe image ${imageIndex + 1}",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                uiState.recipe != null -> EnhancedRecipeContent(
+                    recipe = uiState.recipe,
+                    onNutritionClick = { showNutritionSheet = true }
                 )
             }
-
-            // Gradient overlay for better text visibility
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.3f)
-                            ),
-                            startY = 0f,
-                            endY = Float.POSITIVE_INFINITY
-                        )
-                    )
-            )
-
-            // Progress indicator
-            LinearProgressIndicator(
-                progress = { (currentImageIndex + 1).toFloat() / imageList.size },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(2.dp),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-            )
         }
-    } else {
-        // Single image display (fallback)
-        Card(
-            modifier = modifier,
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            AsyncImage(
-                model = recipe.imageUrl,
-                contentDescription = recipe.name,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+
+        if (showNutritionSheet) {
+            NutritionSheet(
+                recipe = uiState.recipe,
+                onDismiss = { showNutritionSheet = false }
             )
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeDetailContent(recipe: DetailedRecipe) {
-    val context = LocalContext.current
+fun EnhancedDetailTopBar(
+    recipeName: String,
+    isFavorite: Boolean,
+    onBackClick: () -> Unit,
+    onFavoriteClick: () -> Unit,
+    onShareClick: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = recipeName,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = onFavoriteClick) {
+                AnimatedContent(
+                    targetState = isFavorite,
+                    transitionSpec = {
+                        scaleIn() + fadeIn() togetherWith scaleOut() + fadeOut()
+                    },
+                    label = "favorite_animation"
+                ) { favorite ->
+                    Icon(
+                        imageVector = if (favorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Toggle Favorite",
+                        tint = if (favorite) Color.Red else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            IconButton(onClick = onShareClick) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = "Share"
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    )
+}
+
+@Composable
+fun EnhancedRecipeContent(
+    recipe: DetailedRecipe,
+    onNutritionClick: () -> Unit
+) {
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Recipe Image Slideshow
-        item {
-            SimpleRecipeSlideshow(
-                recipe = recipe,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-            )
+        item { EnhancedRecipeHeroImage(recipe = recipe) }
+        item { RecipeInfoCard(recipe = recipe) }
+        item { QuickStatsRow(recipe = recipe) }
+
+        if (recipe.tags.isNotEmpty()) {
+            item { TagsSection(tags = recipe.tags) }
         }
 
-        // Recipe Basic Info
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.clip(RoundedCornerShape(12.dp))
+            ) {
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("Ingredients") },
+                    icon = {
+                        Icon(
+                            Icons.Default.ShoppingCart,
+                            null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(
-                        text = recipe.name,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        InfoChip(
-                            icon = "🍽️",
-                            label = "Category",
-                            value = recipe.category
-                        )
-                        InfoChip(
-                            icon = "🌍",
-                            label = "Cuisine",
-                            value = recipe.area
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text("Instructions") },
+                    icon = {
+                        Icon(
+                            Icons.Default.List,
+                            null,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-
-                    if (recipe.tags.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Tags:",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Text(
-                            text = recipe.tags.joinToString(" • "),
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                )
+                Tab(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    text = { Text("Video") },
+                    icon = {
+                        Image(
+                            painter = painterResource(id = R.drawable.youtube),
+                            contentDescription = "YouTube",
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                }
+                )
             }
         }
-
-        // Ingredients Section
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
+        when (selectedTab) {
+            0 -> {
+                item {
                     Text(
-                        text = "🥘 Ingredients",
-                        fontSize = 30.sp,
+                        text = "${recipe.ingredients.size} Ingredients",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
+                itemsIndexed(recipe.ingredients) { index, ingredient ->
+                    AnimatedIngredientCard(ingredient = ingredient, index = index)
+                }
+            }
+            1 -> {
+                item { InstructionsSection(instructions = recipe.instructions) }
+            }
+            2 -> {
+                item { YouTubeSection(recipeName = recipe.name) }
             }
         }
 
-        // Ingredient Items
-        items(recipe.ingredients) { ingredient ->
-            IngredientCard(ingredient = ingredient)
-        }
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+    }
+}
 
-        // Instructions Section
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+@Composable
+fun YouTubeSection(recipeName: String) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFFFF0000),
+                modifier = Modifier.size(80.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Text(
-                        text = "👨‍🍳 Instructions",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = recipe.instructions,
-                        fontSize = 16.sp,
-                        lineHeight = 24.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(48.dp)
                     )
                 }
             }
-        }
 
-        // Video Section (if available)
-        if (!recipe.youtubeUrl.isNullOrBlank()) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "📹 Watch Tutorial",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
+            Text(
+                text = "Watch Video Tutorial",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "Learn how to make \"$recipeName\" with step-by-step video tutorials on YouTube",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "Choose Your Platform:",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                YouTubeSearchButton(
+                    icon = Icons.Default.PlayArrow,
+                    title = "Search on YouTube",
+                    subtitle = "Find recipe videos",
+                    color = Color(0xFFFF0000),
+                    onClick = {
+                        val query = "$recipeName recipe how to make"
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://www.youtube.com/results?search_query=${Uri.encode(query)}")
                         )
+                        context.startActivity(intent)
+                    }
+                )
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Button(
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(recipe.youtubeUrl))
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Watch on YouTube")
+                YouTubeSearchButton(
+                    icon = Icons.Default.Star,
+                    title = "Open in YouTube App",
+                    subtitle = "Better viewing experience",
+                    color = Color(0xFFFF0000),
+                    onClick = {
+                        val query = "$recipeName recipe tutorial"
+                        try {
+                            val intent = Intent(Intent.ACTION_SEARCH).apply {
+                                `package` = "com.google.android.youtube"
+                                putExtra("query", query)
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            val webIntent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://www.youtube.com/results?search_query=${Uri.encode(query)}")
+                            )
+                            context.startActivity(webIntent)
                         }
                     }
+                )
+
+                YouTubeSearchButton(
+                    icon = Icons.Default.Search,
+                    title = "Search on Google",
+                    subtitle = "Find more video tutorials",
+                    color = Color(0xFF4285F4),
+                    onClick = {
+                        val query = "$recipeName recipe video tutorial"
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://www.google.com/search?q=${Uri.encode(query)}")
+                        )
+                        context.startActivity(intent)
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "We'll search YouTube for video tutorials of this recipe for you!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        lineHeight = 18.sp
+                    )
                 }
             }
-        }
-
-        // Bottom spacing
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-fun InfoChip(
-    icon: String,
-    label: String,
-    value: String
+fun YouTubeSearchButton(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    color: Color,
+    onClick: () -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = color.copy(alpha = 0.15f),
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+fun EnhancedRecipeHeroImage(recipe: DetailedRecipe) {
+    Card(
+        modifier = Modifier.fillMaxWidth().height(280.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Box {
+            AsyncImage(
+                model = recipe.imageUrl,
+                contentDescription = recipe.name,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            Box(
+                modifier = Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(
+                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)),
+                        startY = 300f
+                    )
+                )
+            )
+            Text(
+                text = recipe.name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier.align(Alignment.BottomStart).padding(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun RecipeInfoCard(recipe: DetailedRecipe) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = icon,
-                fontSize = 16.sp
+                text = recipe.description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                InfoBadge(icon = Icons.Default.Star, label = "Category", value = recipe.category)
+                InfoBadge(icon = Icons.Default.Place, label = "Cuisine", value = recipe.area)
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoBadge(icon: ImageVector, label: String, value: String) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
             Column {
                 Text(
                     text = label,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = value,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -548,58 +596,255 @@ fun InfoChip(
 }
 
 @Composable
-fun IngredientCard(ingredient: String) {
-    Card(
+fun QuickStatsRow(recipe: DetailedRecipe) {
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        StatCard(
+            icon = Icons.Default.DateRange,
+            value = recipe.cookingTime,
+            label = "Cook Time",
+            modifier = Modifier.weight(1f)
+        )
+        StatCard(
+            icon = Icons.Default.ShoppingCart,
+            value = "${recipe.ingredients.size}",
+            label = "Ingredients",
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun StatCard(icon: ImageVector, value: String, label: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "•",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.size(24.dp)
             )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = ingredient,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
+            Column {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }
 
 @Composable
-fun LoadingContent() {
+fun TagsSection(tags: List<String>) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "Tags",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            tags.forEach { tag ->
+                SuggestionChip(
+                    onClick = { },
+                    label = { Text(tag) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AnimatedIngredientCard(ingredient: String, index: Int) {
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(index * 50L)
+        visible = true
+    }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + slideInVertically { it / 2 }
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(8.dp)
+                ) {}
+                Text(
+                    text = ingredient,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun InstructionsSection(instructions: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
+                Text(
+                    text = "Cooking Instructions",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Divider()
+            val steps = instructions.split(Regex("\\n\\d+\\.\\s*|\\n\\n+")).filter { it.isNotBlank() }
+            if (steps.size > 1) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    steps.forEachIndexed { index, step ->
+                        InstructionStep(stepNumber = index + 1, instruction = step.trim())
+                    }
+                }
+            } else {
+                Text(
+                    text = instructions,
+                    style = MaterialTheme.typography.bodyLarge,
+                    lineHeight = 28.sp,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun InstructionStep(stepNumber: Int, instruction: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.size(36.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Text(
+                    text = stepNumber.toString(),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+        }
+        Text(
+            text = instruction,
+            style = MaterialTheme.typography.bodyLarge,
+            lineHeight = 24.sp,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NutritionSheet(recipe: DetailedRecipe?, onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState()
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Text(
+                text = "Nutrition Information",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Detailed nutrition data coming soon!",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@Composable
+fun EnhancedLoadingContent() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             CircularProgressIndicator(
-                modifier = Modifier.size(50.dp),
-                color = MaterialTheme.colorScheme.primary
+                modifier = Modifier.size(64.dp),
+                strokeWidth = 6.dp
             )
-            Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Loading recipe details...",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Loading delicious details...",
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
         }
@@ -607,66 +852,55 @@ fun LoadingContent() {
 }
 
 @Composable
-fun ErrorContent(
-    error: String,
-    onRetry: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+fun EnhancedErrorContent(error: String, onRetry: () -> Unit, onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer
-            ),
-            shape = RoundedCornerShape(12.dp)
+            modifier = Modifier.fillMaxWidth().padding(24.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+            shape = RoundedCornerShape(20.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
                 Text(
-                    text = "Unable to load recipe",
-                    fontSize = 18.sp,
+                    text = "Oops! Something went wrong",
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     textAlign = TextAlign.Center
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
                     text = error,
-                    fontSize = 14.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f),
                     textAlign = TextAlign.Center
                 )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(
                         onClick = onDismiss,
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.onErrorContainer
                         )
-                    ) {
-                        Text("Dismiss")
-                    }
-
+                    ) { Text("Dismiss") }
                     Button(
                         onClick = onRetry,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
+                        Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text("Try Again")
                     }
                 }
@@ -675,131 +909,95 @@ fun ErrorContent(
     }
 }
 
-// Preview Functions
+private fun shareRecipe(context: Context, recipe: DetailedRecipe?) {
+    recipe?.let {
+        val shareText = buildString {
+            appendLine("🍽️ ${it.name}")
+            appendLine()
+            appendLine("📍 ${it.category} • ${it.area} Cuisine")
+            appendLine("⏱️ ${it.cookingTime}")
+            appendLine()
+            if (it.tags.isNotEmpty()) {
+                appendLine("🏷️ ${it.tags.joinToString(", ")}")
+                appendLine()
+            }
+            appendLine("📝 Ingredients:")
+            it.ingredients.forEach { ing ->
+                appendLine("• $ing")
+            }
+            appendLine()
+            appendLine("👨‍🍳 Instructions:")
+            appendLine(it.instructions)
+            appendLine()
+            appendLine("🎥 Watch on YouTube:")
+            appendLine("https://www.youtube.com/results?search_query=${Uri.encode("${it.name} recipe")}")
+        }
+
+        val intent = Intent().apply {
+            action = Intent.ACTION_SEND
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            putExtra(Intent.EXTRA_SUBJECT, "Recipe: ${it.name}")
+        }
+        context.startActivity(Intent.createChooser(intent, "Share Recipe"))
+    }
+}
+
+@Composable
+fun FlowRow(
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = modifier) {
+        content()
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
-fun RecipeDetailContentPreview() {
+fun EnhancedRecipeContentPreview() {
     RecipeTheme {
-        val sampleRecipe = DetailedRecipe(
-            id = "1",
-            name = "Spaghetti Carbonara",
-            category = "Pasta",
-            area = "Italian",
-            instructions = "1. Cook spaghetti according to package instructions. 2. In a large pan, cook pancetta until crispy. 3. Beat eggs and mix with grated Parmesan cheese. 4. Drain pasta and add to pan with pancetta. 5. Remove from heat and quickly stir in egg mixture. 6. Season with black pepper and serve immediately.",
-            imageUrl = "https://example.com/carbonara.jpg",
-            youtubeUrl = "https://youtube.com/watch?v=example",
-            ingredients = listOf(
-                "400g spaghetti",
-                "200g pancetta, diced",
-                "4 large eggs",
-                "100g Parmesan cheese, grated",
-                "Black pepper to taste",
-                "Salt for pasta water"
+        EnhancedRecipeContent(
+            recipe = DetailedRecipe(
+                id = "1",
+                name = "Spaghetti Carbonara",
+                category = "Pasta",
+                area = "Italian",
+                instructions = "1. Cook spaghetti. 2. Prepare sauce. 3. Mix together. 4. Serve hot.",
+                imageUrl = "",
+                youtubeUrl = null,
+                ingredients = listOf(
+                    "400g spaghetti",
+                    "200g pancetta",
+                    "4 eggs",
+                    "100g Parmesan"
+                ),
+                tags = listOf("Quick", "Easy", "Italian"),
+                cookingTime = "30 mins",
+                description = "Main Course • Italian cuisine"
             ),
-            tags = listOf("Quick", "Easy", "Classic"),
-            cookingTime = "30 minutes",
-            description = "A classic Italian pasta dish with eggs, cheese, and pancetta"
-        )
-
-        RecipeDetailContent(recipe = sampleRecipe)
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun InfoChipPreview() {
-    RecipeTheme {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(16.dp)
-        ) {
-            InfoChip(
-                icon = "🍽️",
-                label = "Category",
-                value = "Pasta"
-            )
-            InfoChip(
-                icon = "🌍",
-                label = "Cuisine",
-                value = "Italian"
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun IngredientCardPreview() {
-    RecipeTheme {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.padding(16.dp)
-        ) {
-            IngredientCard(ingredient = "400g spaghetti")
-            IngredientCard(ingredient = "200g pancetta, diced")
-            IngredientCard(ingredient = "4 large eggs")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoadingContentPreview() {
-    RecipeTheme {
-        LoadingContent()
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ErrorContentPreview() {
-    RecipeTheme {
-        ErrorContent(
-            error = "Network connection failed. Please check your internet connection and try again.",
-            onRetry = { },
-            onDismiss = { }
+            onNutritionClick = {}
         )
     }
 }
 
-// Utility function to get all favorite recipes (for a favorites screen)
-fun getAllFavoriteRecipes(context: Context): List<FavoriteRecipeItem> {
-    val prefs = context.getSharedPreferences("recipe_favorites", Context.MODE_PRIVATE)
-    val allPrefs = prefs.all
-    val favorites = mutableListOf<FavoriteRecipeItem>()
-
-    val recipeIds = allPrefs.keys.filter { !it.contains("_") && allPrefs[it] == true }
-
-    recipeIds.forEach { recipeId ->
-        val name = prefs.getString("${recipeId}_name", "") ?: ""
-        val imageUrl = prefs.getString("${recipeId}_image", "") ?: ""
-        val category = prefs.getString("${recipeId}_category", "") ?: ""
-        val area = prefs.getString("${recipeId}_area", "") ?: ""
-        val dateAdded = prefs.getLong("${recipeId}_date_added", 0L)
-
-        if (name.isNotEmpty()) {
-            favorites.add(
-                FavoriteRecipeItem(
-                    id = recipeId,
-                    name = name,
-                    imageUrl = imageUrl,
-                    category = category,
-                    area = area,
-                    dateAdded = dateAdded
-                )
-            )
+@Preview(showBackground = true)
+@Composable
+fun InfoBadgePreview() {
+    RecipeTheme {
+        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            InfoBadge(Icons.Default.Star, "Category", "Dessert")
+            InfoBadge(Icons.Default.Place, "Cuisine", "Italian")
         }
     }
-
-    return favorites.sortedByDescending { it.dateAdded }
 }
 
-// Data class for favorite items
-data class FavoriteRecipeItem(
-    val id: String,
-    val name: String,
-    val imageUrl: String,
-    val category: String,
-    val area: String,
-    val dateAdded: Long
-)
+@Preview(showBackground = true)
+@Composable
+fun YouTubeSectionPreview() {
+    RecipeTheme {
+        YouTubeSection(recipeName = "Spaghetti Carbonara")
+    }
+}

@@ -4,17 +4,23 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -22,12 +28,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.recipe.MainActivity
 import com.example.recipe.R
 import com.example.recipe.ui.theme.RecipeTheme
+import kotlinx.coroutines.delay
 
 class GetStartedActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,193 +44,499 @@ class GetStartedActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    GetStartedScreen()
+                    ProfessionalGetStartedScreen()
                 }
             }
         }
     }
 }
+
+data class OnboardingFeature(
+    val icon: ImageVector,
+    val title: String,
+    val description: String,
+    val color: Color
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GetStartedScreen() {
+fun ProfessionalGetStartedScreen() {
     val context = LocalContext.current
+    var isVisible by remember { mutableStateOf(false) }
 
-    Column(
+    LaunchedEffect(Unit) {
+        delay(100)
+        isVisible = true
+    }
+
+    val features = remember {
+        listOf(
+            OnboardingFeature(
+                icon = Icons.Default.Search,
+                title = "Discover Recipes",
+                description = "Browse thousands of recipes from cuisines worldwide powered by TheMealDB API",
+                color = Color(0xFF6B4EFF)
+            ),
+            OnboardingFeature(
+                icon = Icons.Default.Favorite,
+                title = "Save Favorites",
+                description = "Bookmark your favorite recipes and access them anytime, anywhere",
+                color = Color(0xFFFF4E6B)
+            ),
+            OnboardingFeature(
+                icon = Icons.Default.Star,
+                title = "Smart Filters",
+                description = "Filter by diet, cuisine, ingredients, and cooking time to find perfect recipes",
+                color = Color(0xFFFFB84E)
+            ),
+            OnboardingFeature(
+                icon = Icons.Default.Info,
+                title = "Detailed Instructions",
+                description = "Step-by-step cooking instructions with ingredients and nutritional information",
+                color = Color(0xFF4EFFB8)
+            )
+        )
+    }
+
+    Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Top App Bar with Back Button
-        TopAppBar(
-            title = { },
-            navigationIcon = {
-                IconButton(
-                    onClick = {
-                        val intent = Intent(context, WelcomeActivity::class.java)
-                        context.startActivity(intent)
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back to Welcome"
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent
-            )
-        )
-
-        LazyColumn(
+        // Background gradient
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            item {
-                Spacer(modifier = Modifier.height(32.dp))
-
-                // Hero Image
-                Image(
-                    painter = painterResource(id = R.drawable.recipe), // Replace with onboarding image
-                    contentDescription = "Get Started Image",
-                    modifier = Modifier
-                        .size(200.dp)
-                        .padding(bottom = 32.dp),
-                    contentScale = ContentScale.Fit
-                )
-
-                // Title
-                Text(
-                    text = "Let's Get You Started!",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                // Subtitle
-                Text(
-                    text = "Here's what you can do with our Recipe App:",
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(bottom = 32.dp)
-                )
-            }
-
-            // Features List
-            item {
-                FeatureItem(
-                    icon = Icons.Default.Check,
-                    title = "Discover Recipes",
-                    description = "Browse thousands of delicious recipes from around the world"
-                )
-            }
-
-            item {
-                FeatureItem(
-                    icon = Icons.Default.Check,
-                    title = "Save Favorites",
-                    description = "Keep track of your favorite recipes for quick access"
-                )
-            }
-
-            item {
-                FeatureItem(
-                    icon = Icons.Default.Check,
-                    title = "Create Your Own",
-                    description = "Add your own recipes and share them with others"
-                )
-            }
-
-            item {
-                FeatureItem(
-                    icon = Icons.Default.Check,
-                    title = "Step-by-Step Guide",
-                    description = "Follow detailed instructions with photos and videos"
-                )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(48.dp))
-
-                // Continue Button
-                Button(
-                    onClick = {
-                        val intent = Intent(context, MainActivity::class.java)
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                .fillMaxWidth()
+                .height(400.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                            Color.Transparent
+                        )
                     )
-                ) {
-                    Text(
-                        text = "Continue to App",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-        }
-    }
-}
-
-@Composable
-fun FeatureItem(
-    icon: ImageVector,
-    title: String,
-    description: String
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier
-                .size(24.dp)
-                .padding(top = 2.dp),
-            tint = MaterialTheme.colorScheme.primary
+                )
         )
-
-        Spacer(modifier = Modifier.width(16.dp))
 
         Column(
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.fillMaxSize()
         ) {
-            Text(
-                text = title,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 4.dp)
+            // Top App Bar
+            TopAppBar(
+                title = { },
+                navigationIcon = {
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(context, WelcomeActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Box(
+                                modifier = Modifier.size(40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back",
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent
+                )
             )
 
-            Text(
-                text = description,
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                lineHeight = 20.sp
-            )
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn() + slideInVertically()
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Hero Section with Image
+                        HeroSection()
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // Welcome Text
+                        Text(
+                            text = "Let's Get Cooking!",
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "Everything you need to discover and create amazing dishes",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            lineHeight = 24.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(40.dp))
+                    }
+
+                    // Features List - FIXED
+                    item {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            features.forEachIndexed { index, feature ->
+                                AnimatedFeatureCard(
+                                    feature = feature,
+                                    animationDelay = (index * 100L)
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Stats Row
+                        StatsRow()
+
+                        Spacer(modifier = Modifier.height(40.dp))
+
+                        // Continue Button
+                        Button(
+                            onClick = {
+                                val intent = Intent(context, MainActivity::class.java)
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(
+                                defaultElevation = 4.dp,
+                                pressedElevation = 8.dp
+                            )
+                        ) {
+                            Text(
+                                text = "Start Exploring",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Skip Button
+                        TextButton(
+                            onClick = {
+                                val intent = Intent(context, MainActivity::class.java)
+                                context.startActivity(intent)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Skip for now",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(32.dp))
+                    }
+                }
+            }
         }
     }
 }
 
-@Preview(showBackground = false)
 @Composable
-fun GetStartedScreenPreview() {
-    RecipeTheme {
-        GetStartedScreen()
+fun AutoSlideshow(
+    images: List<Int>,
+    modifier: Modifier = Modifier,
+    intervalMillis: Long = 2000
+) {
+    var currentIndex by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(intervalMillis)
+            currentIndex = (currentIndex + 1) % images.size
+        }
+    }
+
+    Crossfade(
+        targetState = currentIndex,
+        label = "Image Crossfade",
+        animationSpec = tween(durationMillis = 800)
+    ) { index ->
+        Image(
+            painter = painterResource(id = images[index]),
+            contentDescription = "Slideshow Image",
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    }
+}
+
+@Composable
+fun HeroSection() {
+    val images = listOf(
+        R.drawable.book001,
+        R.drawable.chef001,
+        R.drawable.food002,
+        R.drawable.book002,
+        R.drawable.book003,
+        R.drawable.chef002,
+        R.drawable.food003,
+        R.drawable.food004,
+        R.drawable.img
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(280.dp),
+        shape = RoundedCornerShape(24.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Box {
+            // Auto-playing slideshow background
+            AutoSlideshow(
+                images = images,
+                modifier = Modifier.fillMaxSize(),
+                intervalMillis = 2000
+            )
+
+            // Gradient overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.7f)
+                            ),
+                            startY = 300f
+                        )
+                    )
+            )
+
+            // Floating badge
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Premium Features",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            // Bottom text overlay
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = "10,000+ Recipes",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = "From cuisines worldwide",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AnimatedFeatureCard(
+    feature: OnboardingFeature,
+    animationDelay: Long = 0L
+) {
+    var isVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(animationDelay)
+        isVisible = true
+    }
+
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(500)) +
+                slideInHorizontally(
+                    initialOffsetX = { it / 2 },
+                    animationSpec = tween(500)
+                )
+    ) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Icon with colored background
+                Surface(
+                    modifier = Modifier.size(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    color = feature.color.copy(alpha = 0.15f)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            imageVector = feature.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = feature.color
+                        )
+                    }
+                }
+
+                // Text Content
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = feature.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = feature.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 20.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatsRow() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        StatItem(
+            icon = Icons.Default.Star,
+            value = "10K+",
+            label = "Recipes",
+            color = Color(0xFFFFB84E)
+        )
+
+        StatItem(
+            icon = Icons.Default.Person,
+            value = "5K+",
+            label = "Users",
+            color = Color(0xFF6B4EFF)
+        )
+
+        StatItem(
+            icon = Icons.Default.Favorite,
+            value = "4.8",
+            label = "Rating",
+            color = Color(0xFFFF4E6B)
+        )
+    }
+}
+
+@Composable
+fun StatItem(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Surface(
+            shape = CircleShape,
+            color = color.copy(alpha = 0.15f),
+            modifier = Modifier.size(48.dp)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

@@ -88,23 +88,74 @@ class MainViewModel : ViewModel() {
 
     /** Filter recipes by category */
     fun filterByCategory(category: String) {
-        uiState = uiState.copy(
-            currentFilter = category,
-            recipes = allRecipes.filter { recipe ->
-                when (category) {
-                    "easy" -> recipe.cookingTime.contains("30") ||
-                            recipe.cookingTime.contains("15") ||
-                            recipe.cookingTime.contains("20")
-                    "low_calorie" -> recipe.description.contains("low", ignoreCase = true) ||
-                            recipe.description.contains("light", ignoreCase = true)
-                    "quick" -> recipe.cookingTime.contains("15") ||
-                            recipe.cookingTime.contains("10")
-                    "healthy" -> recipe.description.contains("healthy", ignoreCase = true) ||
-                            recipe.description.contains("fresh", ignoreCase = true)
-                    else -> true
+        viewModelScope.launch {
+            uiState = uiState.copy(isLoading = true, error = null, currentFilter = category)
+
+            repository.filterRecipesByCategory(category).fold(
+                onSuccess = { recipes ->
+                    allRecipes = recipes
+                    uiState = uiState.copy(
+                        recipes = recipes,
+                        isLoading = false,
+                        error = if (recipes.isEmpty()) "No recipes found for category '$category'" else null
+                    )
+                },
+                onFailure = { exception ->
+                    uiState = uiState.copy(
+                        isLoading = false,
+                        error = "Filter failed: ${exception.message}"
+                    )
                 }
-            }
-        )
+            )
+        }
+    }
+
+    /** Filter by diet type (new feature with Spoonacular) */
+    fun filterByDiet(diet: String) {
+        viewModelScope.launch {
+            uiState = uiState.copy(isLoading = true, error = null, currentFilter = diet)
+
+            repository.filterRecipesByDiet(diet).fold(
+                onSuccess = { recipes ->
+                    allRecipes = recipes
+                    uiState = uiState.copy(
+                        recipes = recipes,
+                        isLoading = false,
+                        error = if (recipes.isEmpty()) "No recipes found for diet '$diet'" else null
+                    )
+                },
+                onFailure = { exception ->
+                    uiState = uiState.copy(
+                        isLoading = false,
+                        error = "Filter failed: ${exception.message}"
+                    )
+                }
+            )
+        }
+    }
+
+    /** Filter by cuisine (new feature with Spoonacular) */
+    fun filterByCuisine(cuisine: String) {
+        viewModelScope.launch {
+            uiState = uiState.copy(isLoading = true, error = null, currentFilter = cuisine)
+
+            repository.filterRecipesByCuisine(cuisine).fold(
+                onSuccess = { recipes ->
+                    allRecipes = recipes
+                    uiState = uiState.copy(
+                        recipes = recipes,
+                        isLoading = false,
+                        error = if (recipes.isEmpty()) "No recipes found for cuisine '$cuisine'" else null
+                    )
+                },
+                onFailure = { exception ->
+                    uiState = uiState.copy(
+                        isLoading = false,
+                        error = "Filter failed: ${exception.message}"
+                    )
+                }
+            )
+        }
     }
 
     /** Clear filter */
@@ -113,6 +164,9 @@ class MainViewModel : ViewModel() {
             currentFilter = "",
             recipes = allRecipes
         )
+        if (allRecipes.isEmpty()) {
+            loadInitialData()
+        }
     }
 
     /** Refresh recipes */

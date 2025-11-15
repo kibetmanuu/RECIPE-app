@@ -1,29 +1,41 @@
 package com.example.recipe.data
 
-
 import com.google.gson.annotations.SerializedName
 
 data class Meal(
-    @SerializedName("idMeal")
-    val idMeal: String?,
+    @SerializedName("id")
+    val id: Int?,
 
-    @SerializedName("strMeal")
-    val strMeal: String?,
+    @SerializedName("title")
+    val title: String?,
 
-    @SerializedName("strCategory")
-    val strCategory: String?,
+    @SerializedName("image")
+    val image: String?,
 
-    @SerializedName("strArea")
-    val strArea: String?,
+    @SerializedName("dishTypes")
+    val dishTypes: List<String>?,
 
-    @SerializedName("strMealThumb")
-    val strMealThumb: String?,
+    @SerializedName("cuisines")
+    val cuisines: List<String>?,
 
-    // Add other properties as needed from MealDB API
-    @SerializedName("strInstructions")
-    val strInstructions: String?,
+    @SerializedName("instructions")
+    val instructions: String?,
 
-    @SerializedName("strIngredient1")
-    val strIngredient1: String?,
-    // ... add more ingredients as needed
-)
+    @SerializedName("readyInMinutes")
+    val readyInMinutes: Int?
+) {
+    fun toRecipe(): Recipe {
+        return Recipe(
+            id = id?.toString() ?: "",
+            name = title ?: "",
+            description = "${dishTypes?.firstOrNull() ?: "Recipe"} • ${cuisines?.firstOrNull() ?: "International"} cuisine",
+            cookingTime = readyInMinutes?.let { "$it mins" } ?: "30-45 mins",
+            imageUrl = image ?: "",
+            category = dishTypes?.firstOrNull() ?: "",
+            area = cuisines?.firstOrNull() ?: "",
+            instructions = instructions ?: "",
+            ingredients = emptyList(),
+            youtubeUrl = null
+        )
+    }
+}

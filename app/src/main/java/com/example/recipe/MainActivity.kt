@@ -6,9 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -17,7 +21,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +31,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.recipe.data.Recipe
@@ -33,8 +43,10 @@ import com.example.recipe.ui.activities.RecipeDetailActivity
 import com.example.recipe.ui.activities.FavoriteActivity
 import com.example.recipe.ui.theme.RecipeTheme
 import com.example.recipe.viewmodel.MainViewModel
-import com.example.recipe.utils.TimeUtils
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.derivedStateOf
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,289 +64,28 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ==================== PREVIEW FUNCTIONS ====================
-
-@Preview(name = "Main Screen - Light", showBackground = true)
-@Composable
-fun MainScreenPreview() {
-    RecipeTheme {
-        MainScreen()
-    }
+// Navigation items
+sealed class BottomNavItem(
+    val route: String,
+    val icon: ImageVector,
+    val label: String
+) {
+    object Home : BottomNavItem("home", Icons.Default.Home, "Home")
+    object Favorites : BottomNavItem("favorites", Icons.Default.Favorite, "Favorites")
+    object Search : BottomNavItem("search", Icons.Default.Search, "Search")
+    object Profile : BottomNavItem("profile", Icons.Default.Person, "Profile")
 }
 
-@Preview(name = "Search Bar - Empty", showBackground = true)
-@Composable
-fun SearchBarEmptyPreview() {
-    RecipeTheme {
-        SearchBar(
-            query = "",
-            onQueryChange = {},
-            onClear = {},
-            isSearching = false
-        )
-    }
-}
+// Filter data classes
+data class FilterChip(
+    val label: String,
+    val value: String,
+    val icon: ImageVector,
+    val type: FilterType
+)
 
-@Preview(name = "Search Bar - With Text", showBackground = true)
-@Composable
-fun SearchBarWithTextPreview() {
-    RecipeTheme {
-        SearchBar(
-            query = "Chicken pasta",
-            onQueryChange = {},
-            onClear = {},
-            isSearching = false
-        )
-    }
-}
-
-@Preview(name = "Search Bar - Searching", showBackground = true)
-@Composable
-fun SearchBarSearchingPreview() {
-    RecipeTheme {
-        SearchBar(
-            query = "Pizza",
-            onQueryChange = {},
-            onClear = {},
-            isSearching = true
-        )
-    }
-}
-
-@Preview(name = "Loading Content", showBackground = true)
-@Composable
-fun LoadingContentPreview() {
-    RecipeTheme {
-        LoadingContent()
-    }
-}
-
-@Preview(name = "Skeleton Card", showBackground = true)
-@Composable
-fun SkeletonRecipeCardPreview() {
-    RecipeTheme {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SkeletonRecipeCard(delay = 0)
-            SkeletonRecipeCard(delay = 100)
-            SkeletonRecipeCard(delay = 200)
-        }
-    }
-}
-
-@Preview(name = "Error Content", showBackground = true)
-@Composable
-fun ErrorContentPreview() {
-    RecipeTheme {
-        ErrorContent(
-            error = "Failed to load recipes. Please check your internet connection and try again.",
-            onRetry = {},
-            onDismiss = {}
-        )
-    }
-}
-
-@Preview(name = "Empty State - No Search", showBackground = true)
-@Composable
-fun EmptyStateNoSearchPreview() {
-    RecipeTheme {
-        EmptyState(searchQuery = "")
-    }
-}
-
-@Preview(name = "Empty State - With Search", showBackground = true)
-@Composable
-fun EmptyStateWithSearchPreview() {
-    RecipeTheme {
-        EmptyState(searchQuery = "Nonexistent recipe")
-    }
-}
-
-@Preview(name = "Recipe Card - Full Details", showBackground = true)
-@Composable
-fun RecipeCardFullPreview() {
-    RecipeTheme {
-        RecipeCard(
-            recipe = Recipe(
-                id = "1",
-                name = "Spaghetti Carbonara",
-                description = "A classic Italian pasta dish with eggs, cheese, and pancetta",
-                imageUrl = "https://www.themealdb.com/images/media/meals/llcbn01574260722.jpg",
-                cookingTime = "30 minutes"
-            )
-        )
-    }
-}
-
-@Preview(name = "Recipe Card - No Image", showBackground = true)
-@Composable
-fun RecipeCardNoImagePreview() {
-    RecipeTheme {
-        RecipeCard(
-            recipe = Recipe(
-                id = "2",
-                name = "Quick Caesar Salad",
-                description = "Fresh romaine lettuce with parmesan cheese and croutons",
-                imageUrl = "",
-                cookingTime = "15 minutes"
-            )
-        )
-    }
-}
-
-@Preview(name = "Recipe Card - Long Title", showBackground = true)
-@Composable
-fun RecipeCardLongTitlePreview() {
-    RecipeTheme {
-        RecipeCard(
-            recipe = Recipe(
-                id = "3",
-                name = "Mediterranean Grilled Chicken with Roasted Vegetables and Herbs",
-                description = "Juicy grilled chicken breast marinated in Mediterranean spices, served with a colorful array of roasted seasonal vegetables",
-                imageUrl = "",
-                cookingTime = "45 minutes"
-            )
-        )
-    }
-}
-
-@Preview(name = "Recipe Card - Minimal Info", showBackground = true)
-@Composable
-fun RecipeCardMinimalPreview() {
-    RecipeTheme {
-        RecipeCard(
-            recipe = Recipe(
-                id = "4",
-                name = "Beef Stew",
-                description = "",
-                imageUrl = "",
-                cookingTime = "2 hours"
-            )
-        )
-    }
-}
-
-@Preview(name = "Recipe List - Multiple Items", showBackground = true, heightDp = 800)
-@Composable
-fun RecipeContentMultiplePreview() {
-    RecipeTheme {
-        RecipeContent(
-            recipes = listOf(
-                Recipe(
-                    id = "1",
-                    name = "Beef Stroganoff",
-                    description = "Tender beef strips in creamy mushroom sauce",
-                    imageUrl = "https://www.themealdb.com/images/media/meals/svprys1511176755.jpg",
-                    cookingTime = "40 minutes"
-                ),
-                Recipe(
-                    id = "2",
-                    name = "Vegetable Stir Fry",
-                    description = "Quick and healthy mixed vegetables with soy sauce",
-                    imageUrl = "",
-                    cookingTime = "20 minutes"
-                ),
-                Recipe(
-                    id = "3",
-                    name = "Chicken Tikka Masala",
-                    description = "Creamy and flavorful Indian curry",
-                    imageUrl = "https://www.themealdb.com/images/media/meals/wyxwsp1486979827.jpg",
-                    cookingTime = "50 minutes"
-                )
-            ),
-            searchQuery = ""
-        )
-    }
-}
-
-@Preview(name = "Recipe List - Search Results", showBackground = true, heightDp = 600)
-@Composable
-fun RecipeContentSearchResultsPreview() {
-    RecipeTheme {
-        RecipeContent(
-            recipes = listOf(
-                Recipe(
-                    id = "1",
-                    name = "Chicken Curry",
-                    description = "Spicy and aromatic chicken curry with basmati rice",
-                    imageUrl = "https://www.themealdb.com/images/media/meals/wyxwsp1486979827.jpg",
-                    cookingTime = "50 minutes"
-                ),
-                Recipe(
-                    id = "2",
-                    name = "Chicken Parmesan",
-                    description = "Breaded chicken breast with marinara sauce and melted cheese",
-                    imageUrl = "",
-                    cookingTime = "35 minutes"
-                )
-            ),
-            searchQuery = "chicken"
-        )
-    }
-}
-
-@Preview(name = "Recipe List - Empty", showBackground = true)
-@Composable
-fun RecipeContentEmptyPreview() {
-    RecipeTheme {
-        RecipeContent(
-            recipes = emptyList(),
-            searchQuery = "nonexistent"
-        )
-    }
-}
-
-@Preview(name = "Recipe Cards - Variety", showBackground = true, heightDp = 800)
-@Composable
-fun RecipeCardsVarietyPreview() {
-    RecipeTheme {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            RecipeCard(
-                recipe = Recipe(
-                    id = "1",
-                    name = "Quick Breakfast Bowl",
-                    description = "Healthy morning meal ready in minutes",
-                    imageUrl = "",
-                    cookingTime = "10 minutes"
-                )
-            )
-
-            RecipeCard(
-                recipe = Recipe(
-                    id = "2",
-                    name = "Classic Margherita Pizza",
-                    description = "Traditional Italian pizza with fresh mozzarella, tomatoes, and basil",
-                    imageUrl = "https://www.themealdb.com/images/media/meals/x0lk931587671540.jpg",
-                    cookingTime = "25 minutes"
-                )
-            )
-
-            RecipeCard(
-                recipe = Recipe(
-                    id = "3",
-                    name = "Slow-Cooked Lamb Shanks",
-                    description = "Fall-off-the-bone tender lamb in rich red wine sauce",
-                    imageUrl = "",
-                    cookingTime = "3 hours"
-                )
-            )
-
-            RecipeCard(
-                recipe = Recipe(
-                    id = "4",
-                    name = "Thai Green Curry",
-                    description = "Aromatic coconut curry with vegetables and tofu",
-                    imageUrl = "https://www.themealdb.com/images/media/meals/sstssx1487349585.jpg",
-                    cookingTime = "35 minutes"
-                )
-            )
-        }
-    }
+enum class FilterType {
+    DIET, CUISINE, TYPE
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -343,158 +94,1241 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
     val context = LocalContext.current
     val uiState = viewModel.uiState
     var searchQuery by remember { mutableStateOf("") }
+    var showFilterSheet by remember { mutableStateOf(false) }
+    var showProfileSheet by remember { mutableStateOf(false) }
+    var selectedNavItem by remember { mutableStateOf<BottomNavItem>(BottomNavItem.Home) }
+    var isSearchExpanded by remember { mutableStateOf(false) }
 
     // Debounced search
     LaunchedEffect(searchQuery) {
-        delay(300)
-        viewModel.searchRecipes(searchQuery)
+        if (searchQuery.length >= 2 || searchQuery.isEmpty()) {
+            delay(500)
+            viewModel.searchRecipes(searchQuery)
+        }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Professional Top App Bar
-        TopAppBar(
-            title = {
-                Text(
-                    text = "Recipe Discovery",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-            },
-            navigationIcon = {
-                IconButton(
-                    onClick = {
-                        val intent = Intent(context, GetStartedActivity::class.java)
-                        context.startActivity(intent)
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowBack,
-                        contentDescription = "Back"
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Background gradient
+        AnimatedVisibility(
+            visible = !isSearchExpanded,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+                                Color.Transparent
+                            )
+                        )
                     )
-                }
-            },
-            actions = {
-                IconButton(onClick = { viewModel.refreshRecipes() }) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh"
-                    )
-                }
+            )
+        }
 
-                BadgedBox(
-                    badge = {
-                        // Optional: Add badge count if you track favorites count
-                    }
-                ) {
-                    IconButton(
-                        onClick = {
-                            val intent = Intent(context, FavoriteActivity::class.java)
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                if (!isSearchExpanded) {
+                    EnhancedTopBar(
+                        onBackClick = {
+                            val intent = Intent(context, GetStartedActivity::class.java)
                             context.startActivity(intent)
+                        },
+                        onRefreshClick = { viewModel.refreshRecipes() },
+                        onFilterClick = { showFilterSheet = true }
+                    )
+                }
+            },
+            bottomBar = {
+                if (!isSearchExpanded) {
+                    ModernBottomBar(
+                        selectedItem = selectedNavItem,
+                        onItemSelected = { item ->
+                            selectedNavItem = item
+                            when (item) {
+                                is BottomNavItem.Home -> {
+                                    // Already on home
+                                }
+                                is BottomNavItem.Favorites -> {
+                                    val intent = Intent(context, FavoriteActivity::class.java)
+                                    context.startActivity(intent)
+                                }
+                                is BottomNavItem.Search -> {
+                                    isSearchExpanded = true
+                                }
+                                is BottomNavItem.Profile -> {
+                                    showProfileSheet = true
+                                }
+                            }
                         }
+                    )
+                }
+            }
+        ) { paddingValues ->
+            // Full Screen Search Mode
+            if (isSearchExpanded) {
+                FullScreenSearchMode(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onBack = {
+                        searchQuery = ""
+                        isSearchExpanded = false
+                    },
+                    isSearching = uiState.isLoading && searchQuery.isNotBlank(),
+                    recipes = if (searchQuery.length >= 2) uiState.recipes else emptyList(),
+                    showResults = searchQuery.length >= 2
+                )
+            } else {
+                // Normal Home Mode
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    // Welcome Header
+
+
+                    // Collapsed Search Bar - Clickable
+                    CollapsedSearchBar(
+                        onClick = { isSearchExpanded = true }
+                    )
+
+                    // Quick Filters
+                    AnimatedVisibility(
+                        visible = searchQuery.isEmpty() && !isSearchExpanded,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Favorite,
-                            contentDescription = "Favorites",
-                            tint = MaterialTheme.colorScheme.error
+                        QuickFilters(
+                            currentFilter = uiState.currentFilter,
+                            onFilterClick = { filter ->
+                                when (filter.type) {
+                                    FilterType.DIET -> viewModel.filterByDiet(filter.value)
+                                    FilterType.CUISINE -> viewModel.filterByCuisine(filter.value)
+                                    FilterType.TYPE -> viewModel.filterByCategory(filter.value)
+                                }
+                            },
+                            onClearFilter = { viewModel.clearFilter() }
+                        )
+                    }
+
+                    // Content based on state
+                    when {
+                        uiState.isLoading -> LoadingContent()
+                        uiState.error != null -> ErrorContent(
+                            error = uiState.error,
+                            onRetry = { viewModel.refreshRecipes() },
+                            onDismiss = { viewModel.clearError() }
+                        )
+                        else -> RecipeContent(
+                            recipes = uiState.recipes,
+                            searchQuery = searchQuery,
+                            currentFilter = uiState.currentFilter
                         )
                     }
                 }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                titleContentColor = MaterialTheme.colorScheme.onSurface
-            )
-        )
+            }
+        }
 
-        // Modern Search Bar
-        SearchBar(
-            query = searchQuery,
-            onQueryChange = { searchQuery = it },
-            onClear = { searchQuery = "" },
-            isSearching = uiState.isLoading && searchQuery.isNotBlank()
-        )
-
-        // Content based on state
-        when {
-            uiState.isLoading -> LoadingContent()
-            uiState.error != null -> ErrorContent(
-                error = uiState.error,
-                onRetry = { viewModel.refreshRecipes() },
-                onDismiss = { viewModel.clearError() }
+        // Filter Bottom Sheet
+        if (showFilterSheet) {
+            AdvancedFilterSheet(
+                onDismiss = { showFilterSheet = false },
+                onApplyFilter = { filter ->
+                    when (filter.type) {
+                        FilterType.DIET -> viewModel.filterByDiet(filter.value)
+                        FilterType.CUISINE -> viewModel.filterByCuisine(filter.value)
+                        FilterType.TYPE -> viewModel.filterByCategory(filter.value)
+                    }
+                    showFilterSheet = false
+                }
             )
-            else -> RecipeContent(
-                recipes = uiState.recipes,
-                searchQuery = searchQuery
+        }
+
+        // Profile Bottom Sheet
+        if (showProfileSheet) {
+            ProfileSheet(
+                onDismiss = { showProfileSheet = false }
             )
         }
     }
 }
 
 @Composable
-fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClear: () -> Unit,
-    isSearching: Boolean
+fun ModernBottomBar(
+    selectedItem: BottomNavItem,
+    onItemSelected: (BottomNavItem) -> Unit
+) {
+    val items = listOf(
+        BottomNavItem.Home,
+        BottomNavItem.Favorites,
+        BottomNavItem.Search,
+        BottomNavItem.Profile
+    )
+
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp)
+    ) {
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = {
+                    Box(
+                        modifier = Modifier.size(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Special treatment for Profile icon
+                        if (item is BottomNavItem.Profile) {
+                            Surface(
+                                shape = CircleShape,
+                                color = if (selectedItem == item) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = item.label,
+                                        tint = if (selectedItem == item) {
+                                            MaterialTheme.colorScheme.onPrimary
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurfaceVariant
+                                        },
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                },
+                label = {
+                    Text(
+                        text = item.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = if (selectedItem == item) FontWeight.Bold else FontWeight.Normal
+                    )
+                },
+                selected = selectedItem == item,
+                onClick = { onItemSelected(item) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
+    }
+}
+
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileSheet(onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState()
+    val context = LocalContext.current
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                BottomSheetDefaults.DragHandle()
+            }
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Profile Avatar
+            Surface(
+                modifier = Modifier.size(100.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shadowElevation = 4.dp
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Profile",
+                        modifier = Modifier.size(50.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Guest User",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Text(
+                text = "Explore delicious recipes",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Stats Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                ProfileStat(
+                    icon = Icons.Default.Favorite,
+                    value = "0",
+                    label = "Favorites",
+                    color = Color.Red
+                )
+                ProfileStat(
+                    icon = Icons.Default.Star,
+                    value = "0",
+                    label = "Recipes",
+                    color = MaterialTheme.colorScheme.primary
+                )
+                ProfileStat(
+                    icon = Icons.Default.DateRange,
+                    value = "New",
+                    label = "Member",
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Divider()
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Profile Options
+            ProfileOption(
+                icon = Icons.Default.Favorite,
+                title = "My Favorites",
+                subtitle = "View saved recipes",
+                onClick = {
+                    val intent = Intent(context, FavoriteActivity::class.java)
+                    context.startActivity(intent)
+                    onDismiss()
+                }
+            )
+
+            ProfileOption(
+                icon = Icons.Default.Settings,
+                title = "Settings",
+                subtitle = "App preferences",
+                onClick = { /* TODO: Navigate to settings */ }
+            )
+
+            ProfileOption(
+                icon = Icons.Default.Info,
+                title = "About",
+                subtitle = "Learn more about the app",
+                onClick = { /* TODO: Show about dialog */ }
+            )
+
+            ProfileOption(
+                icon = Icons.Default.ExitToApp,
+                title = "Exit",
+                subtitle = "Return to welcome screen",
+                onClick = {
+                    val intent = Intent(context, GetStartedActivity::class.java)
+                    context.startActivity(intent)
+                    onDismiss()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun ProfileStat(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    color: Color
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(24.dp)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileOption(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(28.dp),
+            .padding(vertical = 4.dp),
+        onClick = onClick,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(4.dp),
-            placeholder = {
-                Text(
-                    "Search recipes...",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            leadingIcon = {
-                if (isSearching) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()
+                ) {
                     Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-            },
-            trailingIcon = {
-                if (query.isNotBlank()) {
-                    IconButton(onClick = onClear) {
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EnhancedTopBar(
+    onBackClick: () -> Unit,
+    onRefreshClick: () -> Unit,
+    onFilterClick: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Star,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Column {
+                    Text(
+                        text = "Recipe Discovery",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Powered by TheMealDB",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = onFilterClick) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(
+                        modifier = Modifier.size(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Clear",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Filters",
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
-            },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent
-            ),
-            textStyle = MaterialTheme.typography.bodyLarge
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            IconButton(onClick = onRefreshClick) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Refresh"
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent
         )
+    )
+}
+
+@Composable
+fun FullScreenSearchMode(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onBack: () -> Unit,
+    isSearching: Boolean,
+    recipes: List<Recipe>,
+    showResults: Boolean
+) {
+    val focusRequester = remember { FocusRequester() }
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        delay(100)
+        focusRequester.requestFocus()
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+        ) {
+            // Search Header
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surface,
+                shadowElevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Back Button
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Search TextField
+                    OutlinedTextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        modifier = Modifier
+                            .weight(1f)
+                            .focusRequester(focusRequester),
+                        placeholder = {
+                            Text(
+                                text = "Search recipes...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        leadingIcon = {
+                            if (isSearching) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        },
+                        trailingIcon = {
+                            if (query.isNotBlank()) {
+                                IconButton(onClick = { onQueryChange("") }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Clear,
+                                        contentDescription = "Clear",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        ),
+                        textStyle = MaterialTheme.typography.bodyLarge,
+                        shape = RoundedCornerShape(28.dp)
+                    )
+                }
+            }
+
+            // Search Content
+            when {
+                // Show search results
+                showResults && recipes.isNotEmpty() -> {
+                    SearchResults(
+                        query = query,
+                        recipes = recipes,
+                        onRecipeClick = { recipe ->
+                            val intent = Intent(context, RecipeDetailActivity::class.java).apply {
+                                putExtra("RECIPE_ID", recipe.id)
+                                putExtra("RECIPE_NAME", recipe.name)
+                            }
+                            context.startActivity(intent)
+                        }
+                    )
+                }
+                // Show loading
+                showResults && isSearching -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                strokeWidth = 4.dp
+                            )
+                            Text(
+                                text = "Searching for \"$query\"...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                // Show no results
+                showResults && recipes.isEmpty() && !isSearching -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Text(
+                                text = "🔍",
+                                style = MaterialTheme.typography.displayLarge,
+                                fontSize = 72.sp
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No results found",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Try searching for different keywords",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+                // Show suggestions
+                else -> {
+                    SearchSuggestions(
+                        onSuggestionClick = { suggestion ->
+                            onQueryChange(suggestion)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SearchResults(
+    query: String,
+    recipes: List<Recipe>,
+    onRecipeClick: (Recipe) -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Results header
+        item {
+            Text(
+                text = "Results for \"$query\"",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
+        // Recipe results
+        items(recipes, key = { it.id }) { recipe ->
+            SearchRecipeCard(
+                recipe = recipe,
+                onClick = { onRecipeClick(recipe) },
+                query = query
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchRecipeCard(
+    recipe: Recipe,
+    onClick: () -> Unit,
+    query: String
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Recipe Image
+            Card(
+                modifier = Modifier.size(80.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                AsyncImage(
+                    model = recipe.imageUrl,
+                    contentDescription = recipe.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+
+                if (recipe.imageUrl.isBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.primaryContainer),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🍽️",
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                    }
+                }
+            }
+
+            // Recipe Info
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = recipe.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (recipe.category.isNotBlank()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer
+                        ) {
+                            Text(
+                                text = recipe.category,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        if (recipe.area.isNotBlank()) {
+                            Text(
+                                text = "• ${recipe.area}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                if (recipe.cookingTime.isNotBlank()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = recipe.cookingTime,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline
+            )
+        }
+    }
+}
+
+@Composable
+fun CollapsedSearchBar(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+
+            Text(
+                text = "Search delicious recipes...",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+fun SearchSuggestions(
+    onSuggestionClick: (String) -> Unit
+) {
+    val suggestions = remember {
+        listOf(
+            "🍝 Pasta" to "pasta",
+            "🍕 Pizza" to "pizza",
+            "🥗 Salad" to "salad",
+            "🍰 Dessert" to "dessert",
+            "🍜 Soup" to "soup",
+            "🥘 Curry" to "curry",
+            "🍔 Burger" to "burger",
+            "🌮 Tacos" to "tacos",
+            "🍱 Sushi" to "sushi",
+            "🥩 Steak" to "steak"
+        )
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        item {
+            Text(
+                text = "Popular Searches",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+
+        items(suggestions) { (display, search) ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                onClick = { onSuggestionClick(search) },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = display,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickFilters(
+    currentFilter: String,
+    onFilterClick: (FilterChip) -> Unit,
+    onClearFilter: () -> Unit
+) {
+    val filters = remember {
+        listOf(
+            FilterChip("🥗 Vegan", "vegan", Icons.Default.Star, FilterType.DIET),
+            FilterChip("🌱 Vegetarian", "vegetarian", Icons.Default.Star, FilterType.DIET),
+            FilterChip("🍝 Italian", "italian", Icons.Default.Place, FilterType.CUISINE),
+            FilterChip("🌮 Mexican", "mexican", Icons.Default.Place, FilterType.CUISINE),
+            FilterChip("🍜 Asian", "asian", Icons.Default.Place, FilterType.CUISINE),
+            FilterChip("🍰 Dessert", "dessert", Icons.Default.ShoppingCart, FilterType.TYPE),
+            FilterChip("🥞 Breakfast", "breakfast", Icons.Default.ShoppingCart, FilterType.TYPE)
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "🔥 Quick Filters",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            if (currentFilter.isNotEmpty()) {
+                TextButton(
+                    onClick = onClearFilter,
+                    contentPadding = PaddingValues(horizontal = 8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Clear",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            filters.forEach { filter ->
+                FilterChipItem(
+                    filter = filter,
+                    isSelected = currentFilter.equals(filter.value, ignoreCase = true),
+                    onClick = { onFilterClick(filter) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FilterChipItem(
+    filter: FilterChip,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    FilterChip(
+        selected = isSelected,
+        onClick = onClick,
+        label = {
+            Text(
+                text = filter.label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primary,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = isSelected,
+            borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline
+        ),
+        elevation = FilterChipDefaults.filterChipElevation(
+            elevation = if (isSelected) 4.dp else 0.dp
+        )
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdvancedFilterSheet(
+    onDismiss: () -> Unit,
+    onApplyFilter: (FilterChip) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(bottom = 20.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Menu,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
+                Text(
+                    text = "Advanced Filters",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Diet Section
+            FilterSection(
+                title = "🥗 Dietary Preferences",
+                icon = Icons.Default.Star,
+                filters = listOf(
+                    FilterChip("Vegan", "vegan", Icons.Default.Star, FilterType.DIET),
+                    FilterChip("Vegetarian", "vegetarian", Icons.Default.Star, FilterType.DIET),
+                    FilterChip("Gluten Free", "gluten free", Icons.Default.Star, FilterType.DIET),
+                    FilterChip("Ketogenic", "ketogenic", Icons.Default.Star, FilterType.DIET),
+                    FilterChip("Paleo", "paleo", Icons.Default.Star, FilterType.DIET)
+                ),
+                onFilterClick = { filter ->
+                    onApplyFilter(filter)
+                }
+            )
+
+            Divider(modifier = Modifier.padding(vertical = 20.dp))
+
+            // Cuisine Section
+            FilterSection(
+                title = "🌍 World Cuisines",
+                icon = Icons.Default.Place,
+                filters = listOf(
+                    FilterChip("Italian", "italian", Icons.Default.Place, FilterType.CUISINE),
+                    FilterChip("Mexican", "mexican", Icons.Default.Place, FilterType.CUISINE),
+                    FilterChip("Chinese", "chinese", Icons.Default.Place, FilterType.CUISINE),
+                    FilterChip("Indian", "indian", Icons.Default.Place, FilterType.CUISINE),
+                    FilterChip("Thai", "thai", Icons.Default.Place, FilterType.CUISINE),
+                    FilterChip("Japanese", "japanese", Icons.Default.Place, FilterType.CUISINE)
+                ),
+                onFilterClick = { filter ->
+                    onApplyFilter(filter)
+                }
+            )
+
+            Divider(modifier = Modifier.padding(vertical = 20.dp))
+
+            // Meal Type Section
+            FilterSection(
+                title = "🍽️ Meal Types",
+                icon = Icons.Default.ShoppingCart,
+                filters = listOf(
+                    FilterChip("Breakfast", "breakfast", Icons.Default.ShoppingCart, FilterType.TYPE),
+                    FilterChip("Lunch", "main course", Icons.Default.ShoppingCart, FilterType.TYPE),
+                    FilterChip("Dinner", "main course", Icons.Default.ShoppingCart, FilterType.TYPE),
+                    FilterChip("Dessert", "dessert", Icons.Default.ShoppingCart, FilterType.TYPE),
+                    FilterChip("Snack", "snack", Icons.Default.ShoppingCart, FilterType.TYPE),
+                    FilterChip("Appetizer", "appetizer", Icons.Default.ShoppingCart, FilterType.TYPE)
+                ),
+                onFilterClick = { filter ->
+                    onApplyFilter(filter)
+                }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+fun FilterSection(
+    title: String,
+    icon: ImageVector,
+    filters: List<FilterChip>,
+    onFilterClick: (FilterChip) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            filters.forEach { filter ->
+                SuggestionChip(
+                    onClick = { onFilterClick(filter) },
+                    label = {
+                        Text(
+                            text = filter.label,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    },
+                    icon = {
+                        Icon(
+                            imageVector = filter.icon,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                )
+            }
+        }
     }
 }
 
@@ -505,7 +1339,6 @@ fun LoadingContent() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Skeleton loading cards
         repeat(5) { index ->
             SkeletonRecipeCard(
                 modifier = Modifier.padding(bottom = 12.dp),
@@ -539,7 +1372,7 @@ fun SkeletonRecipeCard(modifier: Modifier = Modifier, delay: Int = 0) {
         modifier = modifier
             .fillMaxWidth()
             .height(140.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (startAnimation) alpha else 0.3f)
@@ -553,7 +1386,7 @@ fun SkeletonRecipeCard(modifier: Modifier = Modifier, delay: Int = 0) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(108.dp)
                     .clip(RoundedCornerShape(12.dp))
             )
 
@@ -609,7 +1442,7 @@ fun ErrorContent(
                 containerColor = MaterialTheme.colorScheme.errorContainer
             ),
             shape = RoundedCornerShape(20.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -676,112 +1509,175 @@ fun ErrorContent(
 }
 
 @Composable
-fun RecipeContent(recipes: List<Recipe>, searchQuery: String) {
+fun RecipeContent(
+    recipes: List<Recipe>,
+    searchQuery: String,
+    currentFilter: String
+) {
+    val listState = rememberLazyListState()
+
+    // Track if we should show filters based on scroll position
+    val showFilters by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 100
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
-        // Section Header
-        if (recipes.isNotEmpty()) {
-            Row(
+        // Animated visibility for the header card
+        AnimatedVisibility(
+            visible = showFilters && recipes.isNotEmpty(),
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
             ) {
-                Text(
-                    text = if (searchQuery.isNotBlank()) {
-                        "Results for \"$searchQuery\""
-                    } else {
-                        "Discover Recipes"
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = when {
+                                searchQuery.isNotBlank() -> "Results for \"$searchQuery\""
+                                currentFilter.isNotEmpty() -> "Filtered: ${currentFilter.replaceFirstChar { it.uppercase() }}"
+                                else -> "✨ Discover Recipes"
+                            },
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                        if (currentFilter.isNotEmpty()) {
+                            Text(
+                                text = "Showing filtered results",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
 
-                Text(
-                    text = "${recipes.size} found",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text(
+                            text = if (recipes.size >= 50) "50+ recipes" else "${recipes.size} recipes",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
 
         if (recipes.isEmpty()) {
-            EmptyState(searchQuery = searchQuery)
+            EmptyState(searchQuery = searchQuery, currentFilter = currentFilter)
         } else {
             LazyColumn(
+                state = listState, // Use the listState here
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(recipes, key = { it.id }) { recipe ->
-                    RecipeCard(recipe = recipe)
+                    EnhancedRecipeCard(recipe = recipe)
+                }
+
+                // Bottom padding for bottom bar
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
     }
 }
 
+
 @Composable
-fun EmptyState(searchQuery: String) {
+fun EmptyState(searchQuery: String, currentFilter: String) {
     val context = LocalContext.current
 
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            shape = RoundedCornerShape(24.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
         ) {
-            Text(
-                text = if (searchQuery.isNotBlank()) "🔍" else "🍽️",
-                style = MaterialTheme.typography.displayLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            Text(
-                text = if (searchQuery.isNotBlank()) {
-                    "No recipes found"
-                } else {
-                    "Start exploring recipes"
-                },
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = if (searchQuery.isNotBlank()) {
-                    "Try different keywords or check your favorites"
-                } else {
-                    "Search for your favorite dishes or ingredients"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            FilledTonalButton(
-                onClick = {
-                    val intent = Intent(context, FavoriteActivity::class.java)
-                    context.startActivity(intent)
-                }
+            Column(
+                modifier = Modifier.padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Filled.Favorite,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.error
+                Text(
+                    text = if (searchQuery.isNotBlank() || currentFilter.isNotEmpty()) "🔍" else "🍽️",
+                    style = MaterialTheme.typography.displayLarge,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("View Favorites")
+
+                Text(
+                    text = when {
+                        searchQuery.isNotBlank() -> "No recipes found"
+                        currentFilter.isNotEmpty() -> "No recipes match this filter"
+                        else -> "Start exploring recipes"
+                    },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = when {
+                        searchQuery.isNotBlank() -> "Try different keywords or browse by category"
+                        currentFilter.isNotEmpty() -> "Try a different filter or clear it"
+                        else -> "Search for your favorite dishes or explore categories"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    lineHeight = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                FilledTonalButton(
+                    onClick = {
+                        val intent = Intent(context, FavoriteActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("View My Favorites")
+                }
             }
         }
     }
@@ -789,166 +1685,238 @@ fun EmptyState(searchQuery: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeCard(recipe: Recipe) {
+fun EnhancedRecipeCard(recipe: Recipe) {
     val context = LocalContext.current
-
-    val cookingTime = remember(recipe) {
-        TimeUtils.getSmartCookingTime(
-            description = recipe.description,
-            instructions = "",
-            ingredientCount = 0,
-            category = ""
-        )
-    }
-
-    val difficulty = remember(recipe, cookingTime) {
-        TimeUtils.getDifficultyIndicator(
-            cookingTime = cookingTime,
-            description = recipe.description,
-            ingredientCount = 0
-        )
-    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(140.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(16.dp),
+            .height(150.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape = RoundedCornerShape(20.dp),
         onClick = {
             val intent = Intent(context, RecipeDetailActivity::class.java).apply {
                 putExtra("RECIPE_ID", recipe.id)
                 putExtra("RECIPE_NAME", recipe.name)
             }
             context.startActivity(intent)
-        },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
+        }
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Recipe Image
-            Card(
+        Box(modifier = Modifier.fillMaxSize()) {
+            Row(
                 modifier = Modifier
-                    .size(108.dp),
-                shape = RoundedCornerShape(12.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                AsyncImage(
-                    model = recipe.imageUrl,
-                    contentDescription = recipe.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-
-                if (recipe.imageUrl.isBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Surface(
+                // Recipe Image with gradient
+                Card(
+                    modifier = Modifier.size(126.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Box {
+                        AsyncImage(
+                            model = recipe.imageUrl,
+                            contentDescription = recipe.name,
                             modifier = Modifier.fillMaxSize(),
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
+                            contentScale = ContentScale.Crop
+                        )
+
+                        // Gradient overlay
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            Color.Black.copy(alpha = 0.3f)
+                                        ),
+                                        startY = 200f
+                                    )
+                                )
+                        )
+
+                        if (recipe.imageUrl.isBlank()) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
+                                Surface(
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "🍽️",
+                                            style = MaterialTheme.typography.displayLarge
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // Recipe Details
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = recipe.name,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 24.sp
+                    )
+
+                    if (recipe.description.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = recipe.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Metadata
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Cooking Time
+                        if (recipe.cookingTime.isNotBlank()) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DateRange,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                    )
+                                    Text(
+                                        text = recipe.cookingTime,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+
+                        // Category/Area tag
+                        if (recipe.category.isNotBlank() || recipe.area.isNotBlank()) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
                                 Text(
-                                    text = "🍽️",
-                                    style = MaterialTheme.typography.displayMedium
+                                    text = recipe.category.ifBlank { recipe.area },
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Recipe Details
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = recipe.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                if (recipe.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = recipe.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Metadata Row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Arrow Icon
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    modifier = Modifier.size(36.dp)
                 ) {
-                    // Cooking Time
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Call,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = cookingTime,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    // Difficulty Indicator
-                    difficulty?.let {
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall
+                            imageVector = Icons.Default.KeyboardArrowRight,
+                            contentDescription = "View details",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }
-            }
-
-            // Favorite Icon
-            IconButton(
-                onClick = {
-                    val intent = Intent(context, RecipeDetailActivity::class.java).apply {
-                        putExtra("RECIPE_ID", recipe.id)
-                        putExtra("RECIPE_NAME", recipe.name)
-                    }
-                    context.startActivity(intent)
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.FavoriteBorder,
-                    contentDescription = "View details",
-                    tint = MaterialTheme.colorScheme.outline
-                )
             }
         }
+    }
+}
+
+// FlowRow composable for filter chips
+@Composable
+fun FlowRow(
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
+    verticalArrangement: Arrangement.Vertical = Arrangement.Top,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = modifier) {
+        content()
+    }
+}
+
+// ==================== PREVIEW FUNCTIONS ====================
+
+@Preview(name = "Main Screen", showBackground = true)
+@Composable
+fun MainScreenPreview() {
+    RecipeTheme {
+        MainScreen()
+    }
+}
+
+@Preview(name = "Bottom Navigation Bar", showBackground = true)
+@Composable
+fun ModernBottomBarPreview() {
+    RecipeTheme {
+        ModernBottomBar(
+            selectedItem = BottomNavItem.Home,
+            onItemSelected = {}
+        )
+    }
+}
+
+
+
+@Preview(name = "Enhanced Recipe Card", showBackground = true)
+@Composable
+fun EnhancedRecipeCardPreview() {
+    RecipeTheme {
+        EnhancedRecipeCard(
+            recipe = Recipe(
+                id = "1",
+                name = "Spaghetti Carbonara",
+                description = "Main Course • Italian cuisine",
+                imageUrl = "",
+                cookingTime = "30 mins",
+                category = "Main Course",
+                area = "Italian"
+            )
+        )
     }
 }

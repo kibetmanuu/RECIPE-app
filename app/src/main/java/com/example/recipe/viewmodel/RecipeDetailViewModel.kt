@@ -6,42 +6,43 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.recipe.data.RecipeDetailUiState
-import com.example.recipe.network.MealApiService
+import com.example.recipe.network.ApiClient
 import kotlinx.coroutines.launch
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 
 class RecipeDetailViewModel : ViewModel() {
     var uiState by mutableStateOf(RecipeDetailUiState())
         private set
 
-    private val api = Retrofit.Builder()
-        .baseUrl("https://www.themealdb.com/api/json/v1/1/")
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-        .create(MealApiService::class.java)
+    // Use ApiClient instead of creating a new Retrofit instance
+    private val api = ApiClient.mealApiService
 
     fun loadRecipeDetails(recipeId: String) {
         viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, error = null)
 
             try {
-                // Using your existing getMealById method
-                val response = api.getMealById(recipeId)
-                val meal = response.meals?.firstOrNull()
+                // Convert String ID to Int for Spoonacular
+                val id = recipeId.toIntOrNull()
 
-                uiState = if (meal != null) {
-                    uiState.copy(
+                if (id == null) {
+                    uiState = uiState.copy(
                         isLoading = false,
-                        recipe = meal.toDetailedRecipe(),
-                        error = null
+                        error = "Invalid recipe ID"
                     )
-                } else {
-                    uiState.copy(
-                        isLoading = false,
-                        error = "Recipe not found"
-                    )
+                    return@launch
                 }
+
+                // Get detailed recipe information from Spoonacular
+                val recipeDetail = api.getRecipeById(
+                    recipeId = id,
+                    includeNutrition = false
+                )
+
+                uiState = uiState.copy(
+                    isLoading = false,
+                    recipe = recipeDetail.toDetailedRecipe(),
+                    error = null
+                )
             } catch (e: Exception) {
                 uiState = uiState.copy(
                     isLoading = false,
@@ -66,7 +67,14 @@ class RecipeDetailViewModel : ViewModel() {
                 appendLine()
                 appendLine("Category: ${recipe.category}")
                 appendLine("Cuisine: ${recipe.area}")
+                appendLine("Cooking Time: ${recipe.cookingTime}")
                 appendLine()
+
+                if (recipe.tags.isNotEmpty()) {
+                    appendLine("Tags: ${recipe.tags.joinToString(", ")}")
+                    appendLine()
+                }
+
                 appendLine("Ingredients:")
                 recipe.ingredients.forEach { ingredient ->
                     appendLine("• $ingredient")
@@ -74,11 +82,6 @@ class RecipeDetailViewModel : ViewModel() {
                 appendLine()
                 appendLine("Instructions:")
                 appendLine(recipe.instructions)
-
-                if (!recipe.youtubeUrl.isNullOrBlank()) {
-                    appendLine()
-                    appendLine("Watch video: ${recipe.youtubeUrl}")
-                }
             }
 
             // In a real app, you would use an Intent to share this text
