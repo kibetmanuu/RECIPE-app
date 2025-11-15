@@ -47,6 +47,7 @@ import kotlinx.coroutines.delay
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.ui.graphics.graphicsLayer
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -197,25 +198,6 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                         onClick = { isSearchExpanded = true }
                     )
 
-                    // Quick Filters
-                    AnimatedVisibility(
-                        visible = searchQuery.isEmpty() && !isSearchExpanded,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut() + shrinkVertically()
-                    ) {
-                        QuickFilters(
-                            currentFilter = uiState.currentFilter,
-                            onFilterClick = { filter ->
-                                when (filter.type) {
-                                    FilterType.DIET -> viewModel.filterByDiet(filter.value)
-                                    FilterType.CUISINE -> viewModel.filterByCuisine(filter.value)
-                                    FilterType.TYPE -> viewModel.filterByCategory(filter.value)
-                                }
-                            },
-                            onClearFilter = { viewModel.clearFilter() }
-                        )
-                    }
-
                     // Content based on state
                     when {
                         uiState.isLoading -> LoadingContent()
@@ -227,7 +209,15 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                         else -> RecipeContent(
                             recipes = uiState.recipes,
                             searchQuery = searchQuery,
-                            currentFilter = uiState.currentFilter
+                            currentFilter = uiState.currentFilter,
+                            onFilterClick = { filter ->
+                                when (filter.type) {
+                                    FilterType.DIET -> viewModel.filterByDiet(filter.value)
+                                    FilterType.CUISINE -> viewModel.filterByCuisine(filter.value)
+                                    FilterType.TYPE -> viewModel.filterByCategory(filter.value)
+                                }
+                            },
+                            onClearFilter = { viewModel.clearFilter() }
                         )
                     }
                 }
@@ -1358,68 +1348,214 @@ fun SkeletonRecipeCard(modifier: Modifier = Modifier, delay: Int = 0) {
     }
 
     val infiniteTransition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.7f,
+
+    // Shimmer effect - moves from left to right
+    val shimmerTranslate by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "skeleton_alpha"
+        label = "shimmer_translate"
     )
 
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(140.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp),
+            .height(150.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (startAnimation) alpha else 0.3f)
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Image skeleton with shimmer
             Box(
                 modifier = Modifier
-                    .size(108.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .size(126.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        brush = if (startAnimation) {
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                start = androidx.compose.ui.geometry.Offset(shimmerTranslate - 200f, 0f),
+                                end = androidx.compose.ui.geometry.Offset(shimmerTranslate, 200f)
+                            )
+                        } else {
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            )
+                        }
+                    )
             )
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Text content skeleton with shimmer
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center
             ) {
+                // Title skeleton
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(20.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .fillMaxWidth(0.85f)
+                        .height(22.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(
+                            brush = if (startAnimation) {
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.surface,
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                    start = androidx.compose.ui.geometry.Offset(shimmerTranslate - 200f, 0f),
+                                    end = androidx.compose.ui.geometry.Offset(shimmerTranslate, 200f)
+                                )
+                            } else {
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                )
+                            }
+                        )
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Second line skeleton
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .fillMaxWidth(0.65f)
+                        .height(18.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(
+                            brush = if (startAnimation) {
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.surface,
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    ),
+                                    start = androidx.compose.ui.geometry.Offset(shimmerTranslate - 200f, 0f),
+                                    end = androidx.compose.ui.geometry.Offset(shimmerTranslate, 200f)
+                                )
+                            } else {
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                )
+                            }
+                        )
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.5f)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                )
+                // Tags skeleton
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(70.dp)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                brush = if (startAnimation) {
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            MaterialTheme.colorScheme.surface,
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        ),
+                                        start = androidx.compose.ui.geometry.Offset(shimmerTranslate - 200f, 0f),
+                                        end = androidx.compose.ui.geometry.Offset(shimmerTranslate, 200f)
+                                    )
+                                } else {
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                    )
+                                }
+                            )
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .width(90.dp)
+                            .height(28.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                brush = if (startAnimation) {
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            MaterialTheme.colorScheme.surface,
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        ),
+                                        start = androidx.compose.ui.geometry.Offset(shimmerTranslate - 200f, 0f),
+                                        end = androidx.compose.ui.geometry.Offset(shimmerTranslate, 200f)
+                                    )
+                                } else {
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant,
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        )
+                                    )
+                                }
+                            )
+                    )
+                }
             }
+
+            // Arrow icon skeleton
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(
+                        brush = if (startAnimation) {
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    MaterialTheme.colorScheme.surface,
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                start = androidx.compose.ui.geometry.Offset(shimmerTranslate - 200f, 0f),
+                                end = androidx.compose.ui.geometry.Offset(shimmerTranslate, 200f)
+                            )
+                        } else {
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.surfaceVariant,
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            )
+                        }
+                    )
+            )
         }
     }
 }
@@ -1512,21 +1648,36 @@ fun ErrorContent(
 fun RecipeContent(
     recipes: List<Recipe>,
     searchQuery: String,
-    currentFilter: String
+    currentFilter: String,
+    onFilterClick: (FilterChip) -> Unit,
+    onClearFilter: () -> Unit
 ) {
     val listState = rememberLazyListState()
 
-    // Track if we should show filters based on scroll position
-    val showFilters by remember {
+    // Track if we should show header elements based on scroll position
+    val showHeaderElements by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset < 100
         }
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
+        // Quick Filters - Hides when scrolling
+        AnimatedVisibility(
+            visible = searchQuery.isEmpty() && showHeaderElements,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            QuickFilters(
+                currentFilter = currentFilter,
+                onFilterClick = onFilterClick,
+                onClearFilter = onClearFilter
+            )
+        }
+
         // Animated visibility for the header card
         AnimatedVisibility(
-            visible = showFilters && recipes.isNotEmpty(),
+            visible = showHeaderElements && recipes.isNotEmpty(),
             enter = fadeIn() + expandVertically(),
             exit = fadeOut() + shrinkVertically()
         ) {
@@ -1586,7 +1737,7 @@ fun RecipeContent(
             EmptyState(searchQuery = searchQuery, currentFilter = currentFilter)
         } else {
             LazyColumn(
-                state = listState, // Use the listState here
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -1603,7 +1754,6 @@ fun RecipeContent(
         }
     }
 }
-
 
 @Composable
 fun EmptyState(searchQuery: String, currentFilter: String) {
@@ -1688,6 +1838,18 @@ fun EmptyState(searchQuery: String, currentFilter: String) {
 fun EnhancedRecipeCard(recipe: Recipe) {
     val context = LocalContext.current
 
+    // Image zoom animation
+    val infiniteTransition = rememberInfiniteTransition(label = "image_zoom")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(8000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1709,19 +1871,32 @@ fun EnhancedRecipeCard(recipe: Recipe) {
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Recipe Image with gradient
+                // Recipe Image with gradient and zoom animation
                 Card(
                     modifier = Modifier.size(126.dp),
                     shape = RoundedCornerShape(16.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Box {
-                        AsyncImage(
-                            model = recipe.imageUrl,
-                            contentDescription = recipe.name,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Image with scale animation
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(16.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AsyncImage(
+                                model = recipe.imageUrl,
+                                contentDescription = recipe.name,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer(
+                                        scaleX = scale,
+                                        scaleY = scale
+                                    ),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
 
                         // Gradient overlay
                         Box(

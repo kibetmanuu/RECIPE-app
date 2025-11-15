@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.recipe.MainActivity
@@ -52,7 +53,8 @@ class GetStartedActivity : ComponentActivity() {
 }
 
 data class OnboardingFeature(
-    val icon: ImageVector,
+    val icon: ImageVector? = null,
+    val iconDrawable: Int? = null,
     val title: String,
     val description: String,
     val color: Color
@@ -94,6 +96,12 @@ fun ProfessionalGetStartedScreen() {
                 title = "Detailed Instructions",
                 description = "Step-by-step cooking instructions with ingredients and nutritional information",
                 color = Color(0xFF4EFFB8)
+            ),
+            OnboardingFeature(
+                iconDrawable = R.drawable.youtube,
+                title = "Watch Video Tutorials",
+                description = "Learn cooking techniques with step-by-step video guides from YouTube",
+                color = Color(0xFFFF0000)
             )
         )
     }
@@ -190,7 +198,7 @@ fun ProfessionalGetStartedScreen() {
                         Spacer(modifier = Modifier.height(40.dp))
                     }
 
-                    // Features List - FIXED
+                    // Features List
                     item {
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -245,22 +253,6 @@ fun ProfessionalGetStartedScreen() {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // Skip Button
-                        TextButton(
-                            onClick = {
-                                val intent = Intent(context, MainActivity::class.java)
-                                context.startActivity(intent)
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Skip for now",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(32.dp))
                     }
                 }
             }
@@ -308,7 +300,7 @@ fun HeroSection() {
         R.drawable.chef002,
         R.drawable.food003,
         R.drawable.food004,
-        R.drawable.img
+        R.drawable.youtube
     )
 
     Card(
@@ -436,12 +428,21 @@ fun AnimatedFeatureCard(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Icon(
-                            imageVector = feature.icon,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = feature.color
-                        )
+                        if (feature.iconDrawable != null) {
+                            Image(
+                                painter = painterResource(id = feature.iconDrawable),
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp),
+                                contentScale = ContentScale.Fit
+                            )
+                        } else if (feature.icon != null) {
+                            Icon(
+                                imageVector = feature.icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(28.dp),
+                                tint = feature.color
+                            )
+                        }
                     }
                 }
 
@@ -494,6 +495,13 @@ fun StatsRow() {
             label = "Rating",
             color = Color(0xFFFF4E6B)
         )
+
+        StatItem(
+            icon = Icons.Default.PlayArrow,
+            value = "1K+",
+            label = "Videos",
+            color = Color(0xFFFF0000)
+        )
     }
 }
 
@@ -538,5 +546,123 @@ fun StatItem(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+// Previews
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun GetStartedScreenPreview() {
+    RecipeTheme {
+        ProfessionalGetStartedScreen()
+    }
+}
+
+@Preview(showBackground = true, widthDp = 400)
+@Composable
+fun HeroSectionPreview() {
+    RecipeTheme {
+        Surface(modifier = Modifier.padding(16.dp)) {
+            HeroSection()
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 400)
+@Composable
+fun FeatureCardsPreview() {
+    RecipeTheme {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            AnimatedFeatureCard(
+                feature = OnboardingFeature(
+                    icon = Icons.Default.Search,
+                    title = "Discover Recipes",
+                    description = "Browse thousands of recipes from cuisines worldwide powered by TheMealDB API",
+                    color = Color(0xFF6B4EFF)
+                )
+            )
+
+            AnimatedFeatureCard(
+                feature = OnboardingFeature(
+                    icon = Icons.Default.Favorite,
+                    title = "Save Favorites",
+                    description = "Bookmark your favorite recipes and access them anytime, anywhere",
+                    color = Color(0xFFFF4E6B)
+                )
+            )
+
+            AnimatedFeatureCard(
+                feature = OnboardingFeature(
+                    icon = Icons.Default.Star,
+                    title = "Smart Filters",
+                    description = "Filter by diet, cuisine, ingredients, and cooking time to find perfect recipes",
+                    color = Color(0xFFFFB84E)
+                )
+            )
+
+            AnimatedFeatureCard(
+                feature = OnboardingFeature(
+                    iconDrawable = R.drawable.youtube,
+                    title = "Watch Video Tutorials",
+                    description = "Learn cooking techniques with step-by-step video guides from YouTube",
+                    color = Color(0xFFFF0000)
+                )
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 400)
+@Composable
+fun StatsRowPreview() {
+    RecipeTheme {
+        Surface(modifier = Modifier.padding(16.dp)) {
+            StatsRow()
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun StatItemPreview() {
+    RecipeTheme {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            StatItem(
+                icon = Icons.Default.Star,
+                value = "10K+",
+                label = "Recipes",
+                color = Color(0xFFFFB84E)
+            )
+
+            StatItem(
+                icon = Icons.Default.PlayArrow,
+                value = "1K+",
+                label = "Videos",
+                color = Color(0xFFFF0000)
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 400)
+@Composable
+fun SingleFeatureCardPreview() {
+    RecipeTheme {
+        Surface(modifier = Modifier.padding(16.dp)) {
+            AnimatedFeatureCard(
+                feature = OnboardingFeature(
+                    iconDrawable = R.drawable.youtube,
+                    title = "Watch Video Tutorials",
+                    description = "Learn cooking techniques with step-by-step video guides from YouTube",
+                    color = Color(0xFFFF0000)
+                )
+            )
+        }
     }
 }

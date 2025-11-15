@@ -12,7 +12,7 @@ object ApiClient {
 
     // TODO: Replace with your Spoonacular API key
     // Get your free API key at: https://spoonacular.com/food-api/console#Dashboard
-    private const val API_KEY = "9911710ec5344fa0b808836885b7dcfd"
+    private const val API_KEY = "a1b88ca8806a4d168274fcc6e9fb7aac"
 
     // API Key Interceptor - adds API key to all requests
     private val apiKeyInterceptor = Interceptor { chain ->
