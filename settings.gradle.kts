@@ -21,4 +21,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "RECIPE"
 include(":app")
- 

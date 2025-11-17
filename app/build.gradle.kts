@@ -2,7 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt") // Add this line for Room database
+    id("kotlin-kapt") // For Room database
+    id("com.google.gms.google-services") // ADD THIS LINE
 }
 
 android {
@@ -90,4 +91,25 @@ dependencies {
     implementation("androidx.room:room-runtime:2.5.0")
     implementation("androidx.room:room-ktx:2.5.0")
     kapt("androidx.room:room-compiler:2.5.0")
+
+    // ==========================================
+    // FIREBASE DEPENDENCIES - ADD THESE
+    // ==========================================
+    // Firebase BoM (Bill of Materials) - manages all Firebase versions
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+
+    // Firestore for caching recipes
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // Firebase Analytics (optional but recommended)
+    implementation("com.google.firebase:firebase-analytics-ktx")
+    // Firebase Remote Config - for dynamic API key
+    implementation("com.google.firebase:firebase-config-ktx")
+    // ==========================================
+    // ADD THIS - Gson for JSON parsing
+    // ==========================================
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    implementation("com.google.android.material:material:1.11.0")
+
 }

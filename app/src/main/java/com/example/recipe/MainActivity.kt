@@ -48,10 +48,59 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.lifecycle.lifecycleScope
+import com.example.recipe.config.RemoteConfigManager
+import kotlinx.coroutines.launch
+
 
 class MainActivity : ComponentActivity() {
+
+    // ✨ NEW FUNCTION - Generate or retrieve user ID
+    private fun getUserId(): String {
+        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        var userId = prefs.getString("user_id", null)
+
+        if (userId == null) {
+            // Create new user ID
+            userId = java.util.UUID.randomUUID().toString()
+            prefs.edit().putString("user_id", userId).apply()
+            android.util.Log.d("MainActivity", "✨ New user ID created: $userId")
+        } else {
+            android.util.Log.d("MainActivity", "👤 Existing user ID loaded: $userId")
+        }
+
+        return userId
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Remote Config and track active user
+        lifecycleScope.launch {
+            // Initialize Remote Config
+            RemoteConfigManager.initialize()
+
+            // ✨ NEW - Track this user as active
+            val userId = getUserId()
+            com.example.recipe.analytics.ApiUsageTracker.trackActiveUser(userId)
+            android.util.Log.d("MainActivity", "✅ User tracked: $userId")
+
+            // Force refresh config every time app opens
+            val updated = RemoteConfigManager.forceRefresh()
+            if (updated) {
+                runOnUiThread {
+                    android.widget.Toast.makeText(
+                        this@MainActivity,
+                        "Configuration updated",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+
+        // Optional: Start periodic refresh (every 5 minutes)
+        startPeriodicRefresh()
+
         setContent {
             RecipeTheme {
                 Surface(
@@ -63,8 +112,29 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
 
+    private fun startPeriodicRefresh() {
+        lifecycleScope.launch {
+            while (true) {
+                delay(5 * 60 * 1000L) // 5 minutes
+                try {
+                    val updated = RemoteConfigManager.forceRefresh()
+                    if (updated) {
+                        runOnUiThread {
+                            android.widget.Toast.makeText(
+                                this@MainActivity,
+                                "Recipes refreshed",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Failed to refresh config: ${e.message}")
+                }
+            }
+        }
+    }
+}
 // Navigation items
 sealed class BottomNavItem(
     val route: String,

@@ -191,22 +191,10 @@ fun WelcomeScreen() {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     var startAnimation by remember { mutableStateOf(false) }
-    var showPrivacyDialog by remember { mutableStateOf(false) }
-    var showTermsDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = true) {
         delay(100)
         startAnimation = true
-    }
-
-    // Privacy Policy Dialog
-    if (showPrivacyDialog) {
-        PrivacyPolicyDialog(onDismiss = { showPrivacyDialog = false })
-    }
-
-    // Terms of Service Dialog
-    if (showTermsDialog) {
-        TermsOfServiceDialog(onDismiss = { showTermsDialog = false })
     }
 
     Box(
@@ -427,10 +415,20 @@ fun WelcomeScreen() {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Terms and Privacy
+                    // Terms and Privacy - NOW OPENS WEBVIEW
                     ClickableTermsPrivacyText(
-                        onTermsClick = { showTermsDialog = true },
-                        onPrivacyClick = { showPrivacyDialog = true }
+                        onTermsClick = {
+                            val intent = Intent(context, WebViewActivity::class.java)
+                            intent.putExtra("title", "Terms of Service")
+                            intent.putExtra("url", "https://kibetmanuu.github.io/recipehub-legal/#terms")
+                            context.startActivity(intent)
+                        },
+                        onPrivacyClick = {
+                            val intent = Intent(context, WebViewActivity::class.java)
+                            intent.putExtra("title", "Privacy Policy")
+                            intent.putExtra("url", "https://kibetmanuu.github.io/recipehub-legal/#privacy")
+                            context.startActivity(intent)
+                        }
                     )
                 }
             }
@@ -451,235 +449,9 @@ fun WelcomeScreen() {
     }
 }
 
-@Composable
-fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                imageVector = Icons.Default.Lock,
-                contentDescription = null,
-                tint = Color(0xFFFF6B35),
-                modifier = Modifier.size(32.dp)
-            )
-        },
-        title = {
-            Text(
-                text = "Privacy Policy",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Text(
-                    text = "Last Updated: ${Calendar.getInstance().get(Calendar.YEAR)}",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "1. Information We Collect",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "We collect information you provide when using RecipeHub, including saved recipes, preferences, and usage data to improve your experience.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "2. How We Use Your Information",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "Your data helps us personalize recipe recommendations, save your favorites, and improve our services. We never sell your personal information.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "3. Data Security",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "We implement industry-standard security measures to protect your information. All data is encrypted and stored securely.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "4. Third-Party Services",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "RecipeHub uses TheMealDB API for recipe data and may include YouTube videos for cooking tutorials. These services have their own privacy policies.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "5. Your Rights",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "You have the right to access, modify, or delete your data at any time. Contact us at support@recipehub.com for assistance.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF6B35)
-                )
-            ) {
-                Text("Got It")
-            }
-        },
-        shape = RoundedCornerShape(20.dp)
-    )
-}
-
-@Composable
-fun TermsOfServiceDialog(onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = null,
-                tint = Color(0xFFFF6B35),
-                modifier = Modifier.size(32.dp)
-            )
-        },
-        title = {
-            Text(
-                text = "Terms of Service",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-            ) {
-                Text(
-                    text = "Last Updated: ${Calendar.getInstance().get(Calendar.YEAR)}",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "1. Acceptance of Terms",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "By using RecipeHub, you agree to these terms of service. If you don't agree, please discontinue use of the app.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "2. Use License",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "RecipeHub grants you a personal, non-transferable license to use the app for personal cooking and recipe discovery purposes.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "3. User Content",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "You retain ownership of content you create. By sharing recipes or reviews, you grant RecipeHub a license to display and distribute that content.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "4. Prohibited Activities",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "You may not use RecipeHub to post harmful content, infringe copyrights, or engage in illegal activities.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "5. Disclaimers",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "RecipeHub is provided 'as is.' We don't guarantee uninterrupted service and aren't liable for any recipe outcomes or dietary issues.",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                )
-
-                Text(
-                    text = "6. Contact",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
-                )
-                Text(
-                    text = "Questions about these terms? Contact us at legal@recipehub.com",
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp,
-                    modifier = Modifier.padding(top = 4.dp)
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = onDismiss,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFF6B35)
-                )
-            ) {
-                Text("Accept")
-            }
-        },
-        shape = RoundedCornerShape(20.dp)
-    )
-}
+// REMOVE THESE TWO DIALOG COMPOSABLES - WE DON'T NEED THEM ANYMORE
+// PrivacyPolicyDialog - DELETED
+// TermsOfServiceDialog - DELETED
 
 @Composable
 fun AnimatedScaleCard(
@@ -1005,21 +777,5 @@ fun FeatureHighlightPreview() {
                 modifier = Modifier.fillMaxWidth()
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PrivacyPolicyDialogPreview() {
-    RecipeTheme {
-        PrivacyPolicyDialog(onDismiss = {})
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun TermsOfServiceDialogPreview() {
-    RecipeTheme {
-        TermsOfServiceDialog(onDismiss = {})
     }
 }

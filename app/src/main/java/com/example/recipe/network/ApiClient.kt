@@ -1,5 +1,11 @@
 package com.example.recipe.network
 
+import android.util.Log
+import com.example.recipe.config.RemoteConfigManager
+import com.example.recipe.analytics.ApiUsageTracker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -8,27 +14,51 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object ApiClient {
+    private const val TAG = "ApiClient"
     private const val BASE_URL = "https://api.spoonacular.com/"
 
-    // TODO: Replace with your Spoonacular API key
-    // Get your free API key at: https://spoonacular.com/food-api/console#Dashboard
-    private const val API_KEY = "a1b88ca8806a4d168274fcc6e9fb7aac"
-
-    // API Key Interceptor - adds API key to all requests
+    // API Key Interceptor - gets RANDOM API key from Remote Config + tracks usage
     private val apiKeyInterceptor = Interceptor { chain ->
         val originalRequest = chain.request()
         val originalUrl = originalRequest.url
 
+        // 🎲 Get RANDOM API key from Remote Config (distributes load!)
+        val apiKey = RemoteConfigManager.getRandomApiKey()
+        val keyIndex = RemoteConfigManager.getLastUsedKeyIndex()
+
         // Add API key as query parameter
         val newUrl = originalUrl.newBuilder()
-            .addQueryParameter("apiKey", API_KEY)
+            .addQueryParameter("apiKey", apiKey)
             .build()
 
         val newRequest = originalRequest.newBuilder()
             .url(newUrl)
             .build()
 
-        chain.proceed(newRequest)
+        // Make the request
+        val startTime = System.currentTimeMillis()
+        val response = chain.proceed(newRequest)
+        val duration = System.currentTimeMillis() - startTime
+
+        // 📊 Track the API call (async - doesn't block the request)
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val endpoint = originalUrl.encodedPath
+                val success = response.isSuccessful
+
+                Log.d(TAG, "📞 API Call: endpoint=$endpoint, key=$keyIndex, success=$success, duration=${duration}ms")
+
+                ApiUsageTracker.trackApiCall(
+                    apiKeyIndex = keyIndex,
+                    endpoint = endpoint,
+                    success = success
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to track API call: ${e.message}")
+            }
+        }
+
+        response
     }
 
     // Create OkHttp client with logging and API key interceptor
