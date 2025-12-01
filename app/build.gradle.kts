@@ -111,5 +111,18 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     implementation("com.google.android.material:material:1.11.0")
+    // ==========================================
+// ADMOB DEPENDENCIES - ADD THIS
+// ==========================================
+// Google AdMob SDK
+    implementation("com.google.android.gms:play-services-ads:23.0.0")
+
+        // Lifecycle components
+        implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
+        implementation ("androidx.lifecycle:lifecycle-process:2.6.2")
+
+        // Google Ads
+        implementation ("com.google.android.gms:play-services-ads:22.6.0")
+
 
 }

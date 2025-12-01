@@ -11,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,15 +31,26 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import com.example.recipe.InterstitialAdHelper
 import com.example.recipe.ui.theme.RecipeTheme
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
 class FavoriteActivity : ComponentActivity() {
+
+    private lateinit var interstitialAdHelper: InterstitialAdHelper
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Interstitial Ad
+        interstitialAdHelper = InterstitialAdHelper(this)
 
         setContent {
             RecipeTheme {
@@ -48,16 +58,44 @@ class FavoriteActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    FavoriteScreen()
+                    FavoriteScreen(
+                        onBackClick = {
+                            // Show ad before going back
+                            interstitialAdHelper.showAd {
+                                finish()
+                            }
+                        },
+                        onRecipeClick = { recipe ->
+                            // Show ad before navigating to recipe detail
+                            interstitialAdHelper.showAd {
+                                val intent = Intent(this, RecipeDetailActivity::class.java).apply {
+                                    putExtra("RECIPE_ID", recipe.id)
+                                    putExtra("RECIPE_NAME", recipe.name)
+                                }
+                                startActivity(intent)
+                            }
+                        }
+                    )
                 }
             }
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        // Show ad when user presses back button
+        interstitialAdHelper.showAd {
+            super.onBackPressed()
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FavoriteScreen() {
+fun FavoriteScreen(
+    onBackClick: () -> Unit = {},
+    onRecipeClick: (FavoriteRecipeItem) -> Unit = {}
+) {
     val context = LocalContext.current
     var favoriteRecipes by remember { mutableStateOf<List<FavoriteRecipeItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -66,7 +104,7 @@ fun FavoriteScreen() {
 
     // Load favorite recipes
     LaunchedEffect(Unit) {
-        delay(300) // Small delay for smooth transition
+        delay(300)
         favoriteRecipes = getAllFavoriteRecipes(context)
         isLoading = false
     }
@@ -104,31 +142,29 @@ fun FavoriteScreen() {
 
     Scaffold(
         topBar = {
-            EnhancedFavoriteTopBar(
+            FavoriteTopBar(
                 favoriteCount = favoriteRecipes.size,
-                onBackClick = { (context as ComponentActivity).finish() },
+                onBackClick = onBackClick,
                 onSortClick = { showSortMenu = true }
             )
+        },
+        bottomBar = {
+            // Banner Ad at the bottom
+            BannerAdView(adUnitId = "ca-app-pub-3940256099942544/6300978111") // Test Ad Unit ID
         }
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             when {
                 isLoading -> {
-                    EnhancedLoadingFavoritesContent()
+                    LoadingFavoritesContent()
                 }
                 favoriteRecipes.isEmpty() -> {
-                    EnhancedEmptyFavoritesContent()
+                    EmptyFavoritesContent()
                 }
                 else -> {
-                    EnhancedFavoriteRecipesContent(
+                    FavoriteRecipesContent(
                         favoriteRecipes = sortedRecipes,
-                        onRecipeClick = { recipe ->
-                            val intent = Intent(context, RecipeDetailActivity::class.java).apply {
-                                putExtra("RECIPE_ID", recipe.id)
-                                putExtra("RECIPE_NAME", recipe.name)
-                            }
-                            context.startActivity(intent)
-                        },
+                        onRecipeClick = onRecipeClick,
                         onRemoveFromFavorites = { recipeId ->
                             removeFromFavorites(recipeId)
                         }
@@ -137,7 +173,6 @@ fun FavoriteScreen() {
             }
         }
 
-        // Sort Menu Dialog
         if (showSortMenu) {
             SortMenuDialog(
                 currentSort = sortBy,
@@ -151,9 +186,26 @@ fun FavoriteScreen() {
     }
 }
 
+@Composable
+fun BannerAdView(adUnitId: String) {
+    AndroidView(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .background(MaterialTheme.colorScheme.surface),
+        factory = { context ->
+            AdView(context).apply {
+                setAdSize(AdSize.BANNER)
+                this.adUnitId = adUnitId
+                loadAd(AdRequest.Builder().build())
+            }
+        }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EnhancedFavoriteTopBar(
+fun FavoriteTopBar(
     favoriteCount: Int,
     onBackClick: () -> Unit,
     onSortClick: () -> Unit
@@ -211,7 +263,7 @@ fun EnhancedFavoriteTopBar(
 }
 
 @Composable
-fun EnhancedFavoriteRecipesContent(
+fun FavoriteRecipesContent(
     favoriteRecipes: List<FavoriteRecipeItem>,
     onRecipeClick: (FavoriteRecipeItem) -> Unit,
     onRemoveFromFavorites: (String) -> Unit
@@ -221,25 +273,30 @@ fun EnhancedFavoriteRecipesContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Header Stats Card
         item {
             FavoriteStatsCard(favoriteRecipes = favoriteRecipes)
         }
 
-        // Recipe items with animation
+        // Add banner ad after stats card (every 5 items)
         itemsIndexed(
             items = favoriteRecipes,
             key = { _, recipe -> recipe.id }
         ) { index, recipe ->
-            AnimatedFavoriteRecipeCard(
+            AnimatedFavoriteCard(
                 recipe = recipe,
                 index = index,
                 onClick = { onRecipeClick(recipe) },
                 onRemoveFromFavorites = { onRemoveFromFavorites(recipe.id) }
             )
+
+            // Add banner ad every 5 items
+            if ((index + 1) % 5 == 0 && index < favoriteRecipes.size - 1) {
+                Spacer(modifier = Modifier.height(8.dp))
+                BannerAdView(adUnitId = "ca-app-pub-2431550807153061/9743452630")
+                Spacer(modifier = Modifier.height(8.dp))
+            }
         }
 
-        // Bottom spacing
         item {
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -265,7 +322,7 @@ fun FavoriteStatsCard(favoriteRecipes: List<FavoriteRecipeItem>) {
                 .padding(20.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            StatItem(
+            StatsItem(
                 icon = Icons.Default.Favorite,
                 value = favoriteRecipes.size.toString(),
                 label = "Recipes",
@@ -277,7 +334,7 @@ fun FavoriteStatsCard(favoriteRecipes: List<FavoriteRecipeItem>) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f)
             )
 
-            StatItem(
+            StatsItem(
                 icon = Icons.Default.Star,
                 value = categories.toString(),
                 label = "Categories",
@@ -289,7 +346,7 @@ fun FavoriteStatsCard(favoriteRecipes: List<FavoriteRecipeItem>) {
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.3f)
             )
 
-            StatItem(
+            StatsItem(
                 icon = Icons.Default.Place,
                 value = cuisines.toString(),
                 label = "Cuisines",
@@ -300,7 +357,7 @@ fun FavoriteStatsCard(favoriteRecipes: List<FavoriteRecipeItem>) {
 }
 
 @Composable
-fun FavoriteRecipeItemStatItem(
+fun StatsItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     value: String,
     label: String,
@@ -331,7 +388,7 @@ fun FavoriteRecipeItemStatItem(
 }
 
 @Composable
-fun AnimatedFavoriteRecipeCard(
+fun AnimatedFavoriteCard(
     recipe: FavoriteRecipeItem,
     index: Int,
     onClick: () -> Unit,
@@ -349,14 +406,13 @@ fun AnimatedFavoriteRecipeCard(
         visible = visible,
         enter = fadeIn() + slideInVertically { it / 2 }
     ) {
-        EnhancedFavoriteRecipeCard(
+        FavoriteRecipeCard(
             recipe = recipe,
             onClick = onClick,
             onRemoveFromFavorites = { showDeleteDialog = true }
         )
     }
 
-    // Delete confirmation dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -405,7 +461,7 @@ fun AnimatedFavoriteRecipeCard(
 }
 
 @Composable
-fun EnhancedFavoriteRecipeCard(
+fun FavoriteRecipeCard(
     recipe: FavoriteRecipeItem,
     onClick: () -> Unit,
     onRemoveFromFavorites: () -> Unit
@@ -434,7 +490,6 @@ fun EnhancedFavoriteRecipeCard(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // Enhanced Recipe Image
             Card(
                 modifier = Modifier.size(100.dp),
                 shape = RoundedCornerShape(12.dp),
@@ -448,7 +503,6 @@ fun EnhancedFavoriteRecipeCard(
                         contentScale = ContentScale.Crop
                     )
 
-                    // Gradient overlay
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -463,7 +517,6 @@ fun EnhancedFavoriteRecipeCard(
                             )
                     )
 
-                    // Favorite badge
                     Surface(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -485,7 +538,6 @@ fun EnhancedFavoriteRecipeCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Recipe Details
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -509,14 +561,14 @@ fun EnhancedFavoriteRecipeCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         if (recipe.category.isNotEmpty()) {
-                            EnhancedChip(
+                            CategoryChip(
                                 label = recipe.category,
                                 icon = Icons.Default.Star,
                                 containerColor = MaterialTheme.colorScheme.secondaryContainer
                             )
                         }
                         if (recipe.area.isNotEmpty()) {
-                            EnhancedChip(
+                            CategoryChip(
                                 label = recipe.area,
                                 icon = Icons.Default.Place,
                                 containerColor = MaterialTheme.colorScheme.tertiaryContainer
@@ -565,7 +617,7 @@ fun EnhancedFavoriteRecipeCard(
 }
 
 @Composable
-fun EnhancedChip(
+fun CategoryChip(
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     containerColor: Color
@@ -599,7 +651,7 @@ fun EnhancedChip(
 }
 
 @Composable
-fun EnhancedLoadingFavoritesContent() {
+fun LoadingFavoritesContent() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -623,7 +675,7 @@ fun EnhancedLoadingFavoritesContent() {
 }
 
 @Composable
-fun EnhancedEmptyFavoritesContent() {
+fun EmptyFavoritesContent() {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -643,7 +695,6 @@ fun EnhancedEmptyFavoritesContent() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Animated heart icon
                 Icon(
                     imageVector = Icons.Default.FavoriteBorder,
                     contentDescription = null,
@@ -803,7 +854,6 @@ fun SortOptionItem(
     }
 }
 
-// Data Classes and Enums
 data class FavoriteRecipeItem(
     val id: String,
     val name: String,
@@ -820,7 +870,6 @@ enum class SortOption(val label: String, val icon: androidx.compose.ui.graphics.
     AREA("Cuisine", Icons.Default.Place)
 }
 
-// Utility Functions
 fun getAllFavoriteRecipes(context: Context): List<FavoriteRecipeItem> {
     val prefs = context.getSharedPreferences("recipe_favorites", Context.MODE_PRIVATE)
     val allPrefs = prefs.all
@@ -854,10 +903,9 @@ fun getAllFavoriteRecipes(context: Context): List<FavoriteRecipeItem> {
     return favoriteRecipes
 }
 
-// Preview Functions
 @Preview(showBackground = true)
 @Composable
-fun EnhancedFavoriteRecipeCardPreview() {
+fun FavoriteRecipeCardPreview() {
     RecipeTheme {
         val sampleRecipe = FavoriteRecipeItem(
             id = "1",
@@ -868,7 +916,7 @@ fun EnhancedFavoriteRecipeCardPreview() {
             dateAdded = System.currentTimeMillis()
         )
 
-        EnhancedFavoriteRecipeCard(
+        FavoriteRecipeCard(
             recipe = sampleRecipe,
             onClick = { },
             onRemoveFromFavorites = { }
@@ -891,8 +939,8 @@ fun FavoriteStatsCardPreview() {
 
 @Preview(showBackground = true)
 @Composable
-fun EnhancedEmptyFavoritesContentPreview() {
+fun EmptyFavoritesContentPreview() {
     RecipeTheme {
-        EnhancedEmptyFavoritesContent()
+        EmptyFavoritesContent()
     }
 }

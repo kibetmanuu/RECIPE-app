@@ -1,15 +1,112 @@
+# ========================================
+# CRITICAL: API Keys & Secrets
+# ========================================
+local.properties
+/local.properties
+*.keystore
+*.jks
+google-services.json
+app/google-services.json
+secrets.properties
+
+# ========================================
+# Android Studio Files
+# ========================================
 *.iml
 .gradle
-/local.properties
 /.idea/caches
 /.idea/libraries
 /.idea/modules.xml
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
-.DS_Store
+/.idea/tasks.xml
+/.idea/gradle.xml
+/.idea/dictionaries
+/.idea/jarRepositories.xml
+/.idea/misc.xml
+/.idea/deploymentTargetDropDown.xml
+/.idea/kotlinc.xml
+/.idea/vcs.xml
+
+# ========================================
+# Build Files
+# ========================================
 /build
+build/
+.gradle/
 /captures
+captures/
+*.apk
+*.ap_
+*.aab
+output.json
+bin/
+gen/
+out/
+release/
+
+# ========================================
+# Android & Kotlin
+# ========================================
+*.dex
+*.class
 .externalNativeBuild
 .cxx
-local.properties
+.cxx/
+*.kt~
+
+# ========================================
+# Navigation & ProGuard
+# ========================================
+.navigation/
+proguard/
+
+# ========================================
+# Logs
+# ========================================
+*.log
+
+# ========================================
+# Lint
+# ========================================
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+lint-results.html
+lint-results.xml
+
+# ========================================
+# Testing & Profiling
+# ========================================
+*.hprof
+
+# ========================================
+# Fastlane
+# ========================================
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# ========================================
+# Freeline
+# ========================================
+freeline.py
+freeline/
+freeline_project_description.json
+
+# ========================================
+# Backup Files
+# ========================================
+*~
+*.swp
+*.bak
+
+# ========================================
+# OS Files
+# ========================================
+.DS_Store
+Thumbs.db

@@ -2,6 +2,7 @@ package com.example.recipe.ui.activities
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
@@ -31,23 +32,135 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.recipe.BannerAdView
 import com.example.recipe.MainActivity
 import com.example.recipe.R
 import com.example.recipe.ui.theme.RecipeTheme
+import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import kotlinx.coroutines.delay
 
 class GetStartedActivity : ComponentActivity() {
+
+    private var interstitialAd: InterstitialAd? = null
+    private var isLoadingAd = false
+
+    companion object {
+        private const val TAG = "GetStartedActivity"
+        // Replace with your actual AdMob Interstitial Ad Unit ID
+        private const val AD_UNIT_ID = "ca-app-pub-3940256099942544/1033173712" // Test Ad Unit ID
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Load the interstitial ad
+        loadInterstitialAd()
+
         setContent {
             RecipeTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    ProfessionalGetStartedScreen()
+                    // ✨ Main content with banner ad at bottom
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Main screen content
+                        Box(modifier = Modifier.weight(1f)) {
+                            ProfessionalGetStartedScreen(
+                                onBackPressed = {
+                                    showAdAndNavigate {
+                                        val intent = Intent(this@GetStartedActivity, WelcomeActivity::class.java)
+                                        startActivity(intent)
+                                        finish()
+                                    }
+                                },
+                                onStartExploring = {
+                                    showAdAndNavigate {
+                                        val intent = Intent(this@GetStartedActivity, MainActivity::class.java)
+                                        startActivity(intent)
+                                        finish()
+                                    }
+                                }
+                            )
+                        }
+
+                        // ✨ Banner Ad at the bottom
+                        BannerAdView(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
+        }
+    }
+
+    private fun loadInterstitialAd() {
+        if (isLoadingAd || interstitialAd != null) {
+            return
+        }
+
+        isLoadingAd = true
+        val adRequest = AdRequest.Builder().build()
+
+        InterstitialAd.load(
+            this,
+            AD_UNIT_ID,
+            adRequest,
+            object : InterstitialAdLoadCallback() {
+                override fun onAdLoaded(ad: InterstitialAd) {
+                    Log.d(TAG, "Ad was loaded.")
+                    interstitialAd = ad
+                    isLoadingAd = false
+                }
+
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    Log.e(TAG, "Ad failed to load: ${adError.message}")
+                    interstitialAd = null
+                    isLoadingAd = false
+                }
+            }
+        )
+    }
+
+    private fun showAdAndNavigate(onComplete: () -> Unit) {
+        if (interstitialAd != null) {
+            interstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
+                override fun onAdDismissedFullScreenContent() {
+                    Log.d(TAG, "Ad was dismissed.")
+                    interstitialAd = null
+                    loadInterstitialAd() // Load next ad
+                    onComplete()
+                }
+
+                override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                    Log.e(TAG, "Ad failed to show: ${adError.message}")
+                    interstitialAd = null
+                    loadInterstitialAd()
+                    onComplete()
+                }
+
+                override fun onAdShowedFullScreenContent() {
+                    Log.d(TAG, "Ad showed fullscreen content.")
+                }
+            }
+
+            interstitialAd?.show(this)
+        } else {
+            Log.d(TAG, "The interstitial ad wasn't ready yet.")
+            loadInterstitialAd()
+            onComplete()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        showAdAndNavigate {
+            super.onBackPressed()
         }
     }
 }
@@ -62,7 +175,10 @@ data class OnboardingFeature(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfessionalGetStartedScreen() {
+fun ProfessionalGetStartedScreen(
+    onBackPressed: () -> Unit = {},
+    onStartExploring: () -> Unit = {}
+) {
     val context = LocalContext.current
     var isVisible by remember { mutableStateOf(false) }
 
@@ -131,12 +247,7 @@ fun ProfessionalGetStartedScreen() {
             TopAppBar(
                 title = { },
                 navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            val intent = Intent(context, WelcomeActivity::class.java)
-                            context.startActivity(intent)
-                        }
-                    ) {
+                    IconButton(onClick = onBackPressed) {
                         Surface(
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surfaceVariant
@@ -222,10 +333,7 @@ fun ProfessionalGetStartedScreen() {
 
                         // Continue Button
                         Button(
-                            onClick = {
-                                val intent = Intent(context, MainActivity::class.java)
-                                context.startActivity(intent)
-                            },
+                            onClick = onStartExploring,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(56.dp),
@@ -580,7 +688,7 @@ fun FeatureCardsPreview() {
                 feature = OnboardingFeature(
                     icon = Icons.Default.Search,
                     title = "Discover Recipes",
-                    description = "Browse thousands of recipes from cuisines worldwide powered by TheMealDB API",
+                    description = "Browse thousands of recipes from cuisines worldwide powered by the Spoonacular API.",
                     color = Color(0xFF6B4EFF)
                 )
             )
