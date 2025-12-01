@@ -1,9 +1,11 @@
+
 package com.example.recipe.ui.activities
 
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
@@ -42,10 +44,30 @@ import com.example.recipe.ui.theme.RecipeTheme
 import com.example.recipe.viewmodel.RecipeDetailViewModel
 import kotlinx.coroutines.delay
 import androidx.compose.foundation.Image
-
+import com.example.recipe.BannerAdView
+import com.google.android.gms.ads.AdError
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.FullScreenContentCallback
+import com.google.android.gms.ads.LoadAdError
+import com.google.android.gms.ads.interstitial.InterstitialAd
+import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
+import com.example.recipe.AdConstants
 class RecipeDetailActivity : ComponentActivity() {
+
+    private var interstitialAd: InterstitialAd? = null
+    private var isLoadingAd = false
+
+    companion object {
+        private const val TAG = "RecipeDetailActivity"
+        // Replace with your actual AdMob Interstitial Ad Unit ID
+        private  val AD_UNIT_ID = AdConstants.getInterstitialId() // Test Ad Unit ID
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Load the interstitial ad
+        loadInterstitialAd()
 
         val recipeId = intent.getStringExtra("RECIPE_ID") ?: ""
         val recipeName = intent.getStringExtra("RECIPE_NAME") ?: "Recipe"
@@ -56,12 +78,93 @@ class RecipeDetailActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    RecipeDetailScreen(
-                        recipeId = recipeId,
-                        recipeName = recipeName
-                    )
+                    // ✨ Main content with banner ad at bottom
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Main screen content
+                        Box(modifier = Modifier.weight(1f)) {
+                            RecipeDetailScreen(
+                                recipeId = recipeId,
+                                recipeName = recipeName,
+                                onBackClick = {
+                                    showAdAndNavigate {
+                                        finish()
+                                    }
+                                }
+                            )
+                        }
+
+                        // ✨ Banner Ad at the bottom
+                        BannerAdView(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                 }
             }
+        }
+    }
+
+    private fun loadInterstitialAd() {
+        if (isLoadingAd || interstitialAd != null) {
+            return
+        }
+
+        isLoadingAd = true
+        val adRequest = AdRequest.Builder().build()
+
+        InterstitialAd.load(
+            this,
+            AD_UNIT_ID,
+            adRequest,
+            object : InterstitialAdLoadCallback() {
+                override fun onAdLoaded(ad: InterstitialAd) {
+                    Log.d(TAG, "Ad was loaded.")
+                    interstitialAd = ad
+                    isLoadingAd = false
+                }
+
+                override fun onAdFailedToLoad(adError: LoadAdError) {
+                    Log.e(TAG, "Ad failed to load: ${adError.message}")
+                    interstitialAd = null
+                    isLoadingAd = false
+                }
+            }
+        )
+    }
+
+    private fun showAdAndNavigate(onComplete: () -> Unit) {
+        if (interstitialAd != null) {
+            interstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
+                override fun onAdDismissedFullScreenContent() {
+                    Log.d(TAG, "Ad was dismissed.")
+                    interstitialAd = null
+                    loadInterstitialAd() // Load next ad
+                    onComplete()
+                }
+
+                override fun onAdFailedToShowFullScreenContent(adError: AdError) {
+                    Log.e(TAG, "Ad failed to show: ${adError.message}")
+                    interstitialAd = null
+                    loadInterstitialAd()
+                    onComplete()
+                }
+
+                override fun onAdShowedFullScreenContent() {
+                    Log.d(TAG, "Ad showed fullscreen content.")
+                }
+            }
+
+            interstitialAd?.show(this)
+        } else {
+            Log.d(TAG, "The interstitial ad wasn't ready yet.")
+            loadInterstitialAd()
+            onComplete()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        showAdAndNavigate {
+            super.onBackPressed()
         }
     }
 }
@@ -71,7 +174,8 @@ class RecipeDetailActivity : ComponentActivity() {
 fun RecipeDetailScreen(
     recipeId: String,
     recipeName: String,
-    viewModel: RecipeDetailViewModel = viewModel()
+    viewModel: RecipeDetailViewModel = viewModel(),
+    onBackClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val uiState = viewModel.uiState
@@ -109,7 +213,7 @@ fun RecipeDetailScreen(
             EnhancedDetailTopBar(
                 recipeName = recipeName,
                 isFavorite = isFavorite,
-                onBackClick = { (context as ComponentActivity).finish() },
+                onBackClick = onBackClick,
                 onFavoriteClick = { toggleFavorite() },
                 onShareClick = { shareRecipe(context, uiState.recipe) }
             )
@@ -138,7 +242,6 @@ fun RecipeDetailScreen(
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedDetailTopBar(

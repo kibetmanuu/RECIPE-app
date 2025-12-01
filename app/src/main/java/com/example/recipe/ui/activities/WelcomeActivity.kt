@@ -37,35 +37,70 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.recipe.InterstitialAdHelper
 import com.example.recipe.MainActivity
 import com.example.recipe.R
 import com.example.recipe.ui.theme.RecipeTheme
 import kotlinx.coroutines.delay
 import java.util.Calendar
-
+import com.example.recipe.AdConstants
 class WelcomeActivity : ComponentActivity() {
+
+    private lateinit var interstitialAdHelper: InterstitialAdHelper
+    // ✨ App Open Ad will be managed by AppOpenAdManager in Application class
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Interstitial Ad
+        interstitialAdHelper = InterstitialAdHelper(this)
+
         setContent {
             RecipeTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    WelcomeScreenWithSplash()
+                    WelcomeScreenWithSplash(
+                        onGetStartedClick = {
+                            // Show interstitial ad before navigating to GetStartedActivity
+                            interstitialAdHelper.showAd {
+                                val intent = Intent(this, GetStartedActivity::class.java)
+                                startActivity(intent)
+                            }
+                        },
+                        onBrowseAsGuestClick = {
+                            // Show interstitial ad before navigating to MainActivity
+                            interstitialAdHelper.showAd {
+                                val intent = Intent(this, MainActivity::class.java)
+                                startActivity(intent)
+                            }
+                        }
+                    )
                 }
             }
+        }
+    }
+
+    override fun onBackPressed() {
+        // Show ad when user presses back button
+        interstitialAdHelper.showAd {
+            super.onBackPressed()
         }
     }
 }
 
 @Composable
-fun WelcomeScreenWithSplash() {
+fun WelcomeScreenWithSplash(
+    onGetStartedClick: () -> Unit = {},
+    onBrowseAsGuestClick: () -> Unit = {}
+) {
     var showSplash by remember { mutableStateOf(true) }
 
     LaunchedEffect(key1 = true) {
         delay(3000) // 3 seconds splash
         showSplash = false
+        // ✨ App Open Ad will show automatically after splash via AppOpenAdManager
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -73,7 +108,10 @@ fun WelcomeScreenWithSplash() {
             visible = !showSplash,
             enter = fadeIn(animationSpec = tween(800))
         ) {
-            WelcomeScreen()
+            WelcomeScreen(
+                onGetStartedClick = onGetStartedClick,
+                onBrowseAsGuestClick = onBrowseAsGuestClick
+            )
         }
 
         AnimatedVisibility(
@@ -187,7 +225,10 @@ fun SplashScreen() {
 }
 
 @Composable
-fun WelcomeScreen() {
+fun WelcomeScreen(
+    onGetStartedClick: () -> Unit = {},
+    onBrowseAsGuestClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     var startAnimation by remember { mutableStateOf(false) }
@@ -363,10 +404,7 @@ fun WelcomeScreen() {
                 ) {
                     // Primary Action Button
                     Button(
-                        onClick = {
-                            val intent = Intent(context, GetStartedActivity::class.java)
-                            context.startActivity(intent)
-                        },
+                        onClick = onGetStartedClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -391,10 +429,7 @@ fun WelcomeScreen() {
 
                     // Secondary Action Button
                     OutlinedButton(
-                        onClick = {
-                            val intent = Intent(context, MainActivity::class.java)
-                            context.startActivity(intent)
-                        },
+                        onClick = onBrowseAsGuestClick,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
@@ -415,7 +450,7 @@ fun WelcomeScreen() {
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Terms and Privacy - NOW OPENS WEBVIEW
+                    // Terms and Privacy
                     ClickableTermsPrivacyText(
                         onTermsClick = {
                             val intent = Intent(context, WebViewActivity::class.java)
@@ -448,10 +483,6 @@ fun WelcomeScreen() {
         }
     }
 }
-
-// REMOVE THESE TWO DIALOG COMPOSABLES - WE DON'T NEED THEM ANYMORE
-// PrivacyPolicyDialog - DELETED
-// TermsOfServiceDialog - DELETED
 
 @Composable
 fun AnimatedScaleCard(

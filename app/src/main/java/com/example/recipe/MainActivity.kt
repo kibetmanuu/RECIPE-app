@@ -51,7 +51,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.lifecycle.lifecycleScope
 import com.example.recipe.config.RemoteConfigManager
 import kotlinx.coroutines.launch
-
+import com.example.recipe.AdConstants
 
 class MainActivity : ComponentActivity() {
 
@@ -216,27 +216,38 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
             },
             bottomBar = {
                 if (!isSearchExpanded) {
-                    ModernBottomBar(
-                        selectedItem = selectedNavItem,
-                        onItemSelected = { item ->
-                            selectedNavItem = item
-                            when (item) {
-                                is BottomNavItem.Home -> {
-                                    // Already on home
-                                }
-                                is BottomNavItem.Favorites -> {
-                                    val intent = Intent(context, FavoriteActivity::class.java)
-                                    context.startActivity(intent)
-                                }
-                                is BottomNavItem.Search -> {
-                                    isSearchExpanded = true
-                                }
-                                is BottomNavItem.Profile -> {
-                                    showProfileSheet = true
+                    // Column to stack Banner Ad + Navigation Bar
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // AdMob Banner Ad
+                        BannerAdView(
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        // Navigation Bar
+                        ModernBottomBar(
+                            selectedItem = selectedNavItem,
+                            onItemSelected = { item ->
+                                selectedNavItem = item
+                                when (item) {
+                                    is BottomNavItem.Home -> {
+                                        // Already on home
+                                    }
+                                    is BottomNavItem.Favorites -> {
+                                        val intent = Intent(context, FavoriteActivity::class.java)
+                                        context.startActivity(intent)
+                                    }
+                                    is BottomNavItem.Search -> {
+                                        isSearchExpanded = true
+                                    }
+                                    is BottomNavItem.Profile -> {
+                                        showProfileSheet = true
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         ) { paddingValues ->
@@ -658,7 +669,7 @@ fun EnhancedTopBar(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Powered by TheMealDB",
+                        text = "Powered by Spoonacular API",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
