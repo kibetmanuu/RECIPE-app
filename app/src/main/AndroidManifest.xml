@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+
     <!-- Internet permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -15,7 +16,7 @@
         android:roundIcon="@drawable/recipe"
         android:supportsRtl="true"
         android:theme="@style/Theme.Recipe"
-        android:name=".RecipeApplication"
+        android:name="ke.nucho.recipe.RecipeApplication"
         tools:targetApi="31">
 
         <!-- AdMob App ID -->
@@ -31,7 +32,7 @@
 
         <!-- Welcome Activity - Launch Activity with Integrated Splash Screen -->
         <activity
-            android:name=".ui.activities.WelcomeActivity"
+            android:name="ke.nucho.recipe.ui.activities.WelcomeActivity"
             android:exported="true"
             android:theme="@style/Theme.Recipe">
             <intent-filter>
@@ -42,33 +43,33 @@
 
         <!-- Get Started Activity -->
         <activity
-            android:name=".ui.activities.GetStartedActivity"
+            android:name="ke.nucho.recipe.ui.activities.GetStartedActivity"
             android:exported="false"
             android:theme="@style/Theme.Recipe" />
 
         <!-- Main Activity -->
         <activity
-            android:name=".MainActivity"
+            android:name="ke.nucho.recipe.MainActivity"
             android:exported="false"
             android:theme="@style/Theme.Recipe" />
 
         <!-- Recipe Detail Activity -->
         <activity
-            android:name=".ui.activities.RecipeDetailActivity"
+            android:name="ke.nucho.recipe.ui.activities.RecipeDetailActivity"
             android:exported="false" />
 
         <!-- Favorite Activity -->
         <activity
-            android:name=".ui.activities.FavoriteActivity"
+            android:name="ke.nucho.recipe.ui.activities.FavoriteActivity"
             android:exported="false"
             android:theme="@style/Theme.Recipe" />
 
         <!-- WebView Activity for Privacy Policy and Terms -->
         <activity
-            android:name=".ui.activities.WebViewActivity"
+            android:name="ke.nucho.recipe.ui.activities.WebViewActivity"
             android:exported="false"
             android:label="Legal"
-            android:parentActivityName=".MainActivity"
+            android:parentActivityName="ke.nucho.recipe.MainActivity"
             android:theme="@style/Theme.Recipe" />
 
     </application>
