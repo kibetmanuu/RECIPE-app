@@ -55,7 +55,7 @@ import ke.nucho.recipe.config.RemoteConfigManager
 import ke.nucho.recipe.analytics.ApiUsageTracker
 import kotlinx.coroutines.launch
 import java.util.UUID
-
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 class MainActivity : ComponentActivity() {
 
     // ✨ NEW FUNCTION - Generate or retrieve user ID

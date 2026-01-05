@@ -22,7 +22,7 @@
         <!-- AdMob App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-2431558807153061~1926093247"/>
+            android:value="ca-app-pub-2431550807153061~1926093247"/>
 
         <!-- FIX: Resolve AdMob/Firebase conflict -->
         <property

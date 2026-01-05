@@ -3,19 +3,20 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("kotlin-kapt") // For Room database
-    id("com.google.gms.google-services") // ADD THIS LINE
+    id("com.google.gms.google-services")
+    id("com.google.firebase.crashlytics") // ✅ ADD THIS LINE
 }
 
 android {
-    namespace = "com.example.recipe"
+    namespace = "ke.nucho.recipe"
     compileSdk = 35
 
     defaultConfig {
         applicationId = "ke.nucho.recipe"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -70,7 +72,7 @@ dependencies {
     // Animation (using BOM version)
     implementation("androidx.compose.animation:animation")
 
-    // Material Design 3 - REQUIRED for Theme.Material3.DayNight
+    // Material Design 3
     implementation("com.google.android.material:material:1.11.0")
 
     // Retrofit for API calls
@@ -92,37 +94,23 @@ dependencies {
     implementation("androidx.room:room-ktx:2.5.0")
     kapt("androidx.room:room-compiler:2.5.0")
 
-    // ==========================================
-    // FIREBASE DEPENDENCIES - ADD THESE
-    // ==========================================
-    // Firebase BoM (Bill of Materials) - manages all Firebase versions
+    // Firebase BoM (Bill of Materials)
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
-
-    // Firestore for caching recipes
     implementation("com.google.firebase:firebase-firestore-ktx")
-
-    // Firebase Analytics (optional but recommended)
     implementation("com.google.firebase:firebase-analytics-ktx")
-    // Firebase Remote Config - for dynamic API key
     implementation("com.google.firebase:firebase-config-ktx")
-    // ==========================================
-    // ADD THIS - Gson for JSON parsing
-    // ==========================================
+
+    // ✅ ADD CRASHLYTICS - These lines are NEW
+    implementation("com.google.firebase:firebase-crashlytics-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx") // Already present, but needed for Crashlytics
+
+    // Gson for JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
 
-    implementation("com.google.android.material:material:1.11.0")
-    // ==========================================
-// ADMOB DEPENDENCIES - ADD THIS
-// ==========================================
-// Google AdMob SDK
-    implementation("com.google.android.gms:play-services-ads:23.0.0")
+    // AdMob
+    implementation("com.google.android.gms:play-services-ads:23.5.0")
 
-        // Lifecycle components
-        implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
-        implementation ("androidx.lifecycle:lifecycle-process:2.6.2")
-
-        // Google Ads
-        implementation ("com.google.android.gms:play-services-ads:22.6.0")
-
-
+    // Lifecycle components for App Open Ads
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-process:2.7.0")
 }

@@ -13,34 +13,21 @@ object AdConstants {
     const val TEST_NATIVE_AD_ID = "ca-app-pub-3940256099942544/2247696110"
     const val TEST_APP_OPEN_AD_ID = "ca-app-pub-3940256099942544/9257395921"
 
-    // 🔴 IMPORTANT: Set to false to use REAL ads
-    // Use TEST ADS until app is published on Play Store
-    const val USE_TEST_ADS = true
+    // 🔴 SWITCH TO TEST ADS
+    const val USE_TEST_ADS = true  // ← Change this back to true
 
-    /**
-     * Get the appropriate Banner Ad ID based on test mode
-     */
     fun getBannerId(): String {
         return if (USE_TEST_ADS) TEST_BANNER_AD_ID else BANNER_AD_ID
     }
 
-    /**
-     * Get the appropriate Interstitial Ad ID based on test mode
-     */
     fun getInterstitialId(): String {
         return if (USE_TEST_ADS) TEST_INTERSTITIAL_AD_ID else INTERSTITIAL_AD_ID
     }
 
-    /**
-     * Get the appropriate Native Ad ID based on test mode
-     */
     fun getNativeId(): String {
         return if (USE_TEST_ADS) TEST_NATIVE_AD_ID else NATIVE_AD_ID
     }
 
-    /**
-     * Get the appropriate App Open Ad ID based on test mode
-     */
     fun getAppOpenId(): String {
         return if (USE_TEST_ADS) TEST_APP_OPEN_AD_ID else APP_OPEN_AD_ID
     }

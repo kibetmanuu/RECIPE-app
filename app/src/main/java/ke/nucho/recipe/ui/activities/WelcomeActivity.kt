@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ke.nucho.recipe.InterstitialAdHelper
 import ke.nucho.recipe.MainActivity
-import com.example.recipe.R
+import ke.nucho.recipe.R
 import ke.nucho.recipe.ui.theme.RecipeTheme
 import kotlinx.coroutines.delay
 import java.util.Calendar

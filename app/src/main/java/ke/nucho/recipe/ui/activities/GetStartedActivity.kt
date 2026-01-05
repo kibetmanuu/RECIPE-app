@@ -34,8 +34,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ke.nucho.recipe.BannerAdView
 import ke.nucho.recipe.MainActivity
-import com.example.recipe.R
+import ke.nucho.recipe.R  // ✅ CHANGED FROM com.example.recipe.R
 import ke.nucho.recipe.ui.theme.RecipeTheme
+import ke.nucho.recipe.AdConstants
 import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.FullScreenContentCallback
@@ -43,7 +44,6 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
 import kotlinx.coroutines.delay
-import ke.nucho.recipe.AdConstants
 
 class GetStartedActivity : ComponentActivity() {
 
@@ -199,7 +199,7 @@ fun ProfessionalGetStartedScreen(
             OnboardingFeature(
                 icon = Icons.Default.Search,
                 title = "Discover Recipes",
-                description = "Browse thousands of recipes from cuisines worldwide powered by TheMealDB API",
+                description = "Browse thousands of recipes from cuisines worldwide powered by Spooncular  API",
                 color = Color(0xFF6B4EFF)
             ),
             OnboardingFeature(

@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.recipe.R
+import ke.nucho.recipe.R
 import coil.compose.AsyncImage
 import ke.nucho.recipe.data.DetailedRecipe
 import ke.nucho.recipe.ui.theme.RecipeTheme
@@ -58,14 +58,12 @@ class RecipeDetailActivity : ComponentActivity() {
 
     companion object {
         private const val TAG = "RecipeDetailActivity"
-        // Replace with your actual AdMob Interstitial Ad Unit ID
-        private  val AD_UNIT_ID = AdConstants.getInterstitialId() // Test Ad Unit ID
+        private val AD_UNIT_ID = AdConstants.getInterstitialId()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Load the interstitial ad
         loadInterstitialAd()
 
         val recipeId = intent.getStringExtra("RECIPE_ID") ?: ""
@@ -77,9 +75,7 @@ class RecipeDetailActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // ✨ Main content with banner ad at bottom
                     Column(modifier = Modifier.fillMaxSize()) {
-                        // Main screen content
                         Box(modifier = Modifier.weight(1f)) {
                             RecipeDetailScreen(
                                 recipeId = recipeId,
@@ -91,8 +87,6 @@ class RecipeDetailActivity : ComponentActivity() {
                                 }
                             )
                         }
-
-                        // ✨ Banner Ad at the bottom
                         BannerAdView(
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -136,7 +130,7 @@ class RecipeDetailActivity : ComponentActivity() {
                 override fun onAdDismissedFullScreenContent() {
                     Log.d(TAG, "Ad was dismissed.")
                     interstitialAd = null
-                    loadInterstitialAd() // Load next ad
+                    loadInterstitialAd()
                     onComplete()
                 }
 
@@ -241,6 +235,7 @@ fun RecipeDetailScreen(
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnhancedDetailTopBar(
@@ -347,6 +342,8 @@ fun EnhancedRecipeContent(
                         )
                     }
                 )
+                // COMMENTED OUT: YouTube feature - will be re-enabled after publishing
+                /*
                 Tab(
                     selected = selectedTab == 2,
                     onClick = { selectedTab = 2 },
@@ -359,6 +356,7 @@ fun EnhancedRecipeContent(
                         )
                     }
                 )
+                */
             }
         }
         when (selectedTab) {
@@ -378,15 +376,20 @@ fun EnhancedRecipeContent(
             1 -> {
                 item { InstructionsSection(instructions = recipe.instructions) }
             }
+            // COMMENTED OUT: YouTube feature - will be re-enabled after publishing
+            /*
             2 -> {
                 item { YouTubeSection(recipeName = recipe.name) }
             }
+            */
         }
 
         item { Spacer(modifier = Modifier.height(32.dp)) }
     }
 }
 
+// COMMENTED OUT: YouTube feature - will be re-enabled after publishing
+/*
 @Composable
 fun YouTubeSection(recipeName: String) {
     val context = LocalContext.current
@@ -602,6 +605,7 @@ fun YouTubeSearchButton(
         }
     }
 }
+*/
 
 @Composable
 fun EnhancedRecipeHeroImage(recipe: DetailedRecipe) {
@@ -1096,6 +1100,8 @@ fun InfoBadgePreview() {
     }
 }
 
+// COMMENTED OUT: YouTube preview - will be re-enabled after publishing
+/*
 @Preview(showBackground = true)
 @Composable
 fun YouTubeSectionPreview() {
@@ -1103,3 +1109,4 @@ fun YouTubeSectionPreview() {
         YouTubeSection(recipeName = "Spaghetti Carbonara")
     }
 }
+*/
