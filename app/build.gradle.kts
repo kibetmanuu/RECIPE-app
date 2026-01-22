@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("kotlin-kapt") // For Room database
     id("com.google.gms.google-services")
-    id("com.google.firebase.crashlytics") // ✅ ADD THIS LINE
+    id("com.google.firebase.crashlytics") //
 }
 
 android {
@@ -15,8 +15,8 @@ android {
         applicationId = "ke.nucho.recipe"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 5
+        versionName = "1.4.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -100,7 +100,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-config-ktx")
 
-    // ✅ ADD CRASHLYTICS - These lines are NEW
+    //CRASHLYTICS -
     implementation("com.google.firebase:firebase-crashlytics-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx") // Already present, but needed for Crashlytics
 
