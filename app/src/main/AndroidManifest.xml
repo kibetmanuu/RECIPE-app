@@ -30,9 +30,9 @@
             android:resource="@xml/gma_ad_services_config"
             tools:replace="android:resource"/>
 
-        <!-- Welcome Activity - Launch Activity with Integrated Splash Screen -->
+        <!-- ✅ NEW: Launcher Activity - Main Entry Point (First screen user sees) -->
         <activity
-            android:name="ke.nucho.recipe.ui.activities.WelcomeActivity"
+            android:name="ke.nucho.recipe.ui.activities.LauncherActivity"
             android:exported="true"
             android:theme="@style/Theme.Recipe">
             <intent-filter>
@@ -40,6 +40,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- ✅ UPDATED: Welcome Activity - Now only for first-time users -->
+        <activity
+            android:name="ke.nucho.recipe.ui.activities.WelcomeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Recipe" />
 
         <!-- Get Started Activity -->
         <activity
@@ -51,7 +57,8 @@
         <activity
             android:name="ke.nucho.recipe.MainActivity"
             android:exported="false"
-            android:theme="@style/Theme.Recipe" />
+            android:theme="@style/Theme.Recipe"
+            android:launchMode="singleTop" />
 
         <!-- Recipe Detail Activity -->
         <activity

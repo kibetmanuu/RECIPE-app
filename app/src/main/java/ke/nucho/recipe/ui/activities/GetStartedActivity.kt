@@ -74,14 +74,7 @@ class GetStartedActivity : ComponentActivity() {
                         Box(modifier = Modifier.weight(1f)) {
                             ProfessionalGetStartedScreen(
                                 onBackPressed = {
-                                    showAdAndNavigate {
-                                        val intent = Intent(
-                                            this@GetStartedActivity,
-                                            WelcomeActivity::class.java
-                                        )
-                                        startActivity(intent)
-                                        finish()
-                                    }
+                                    finish()
                                 },
                                 onStartExploring = {
                                     showAdAndNavigate {
@@ -166,9 +159,8 @@ class GetStartedActivity : ComponentActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        showAdAndNavigate {
-            super.onBackPressed()
-        }
+        // Just finish the activity, don't go back to WelcomeActivity
+        finish()
     }
 }
 

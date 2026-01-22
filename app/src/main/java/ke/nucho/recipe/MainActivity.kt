@@ -110,7 +110,12 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen()
+                    MainScreen(
+                        onBackPressed = {
+                            // Exit app instead of going to onboarding
+                            finish()
+                        }
+                    )
                 }
             }
         }
@@ -137,7 +142,15 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    // Handle back press - exit app instead of going to onboarding
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        // Exit the app instead of going back to onboarding
+        @Suppress("DEPRECATION")
+        super.onBackPressed()
+    }
 }
+
 // Navigation items
 sealed class BottomNavItem(
     val route: String,
@@ -164,7 +177,10 @@ enum class FilterType {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(viewModel: MainViewModel = viewModel()) {
+fun MainScreen(
+    viewModel: MainViewModel = viewModel(),
+    onBackPressed: () -> Unit = {}
+) {
     val context = LocalContext.current
     val uiState = viewModel.uiState
     var searchQuery by remember { mutableStateOf("") }
@@ -208,10 +224,7 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
             topBar = {
                 if (!isSearchExpanded) {
                     EnhancedTopBar(
-                        onBackClick = {
-                            val intent = Intent(context, GetStartedActivity::class.java)
-                            context.startActivity(intent)
-                        },
+                        onBackClick = onBackPressed, // Use the callback parameter
                         onRefreshClick = { viewModel.refreshRecipes() },
                         onFilterClick = { showFilterSheet = true }
                     )
@@ -537,10 +550,10 @@ fun ProfileSheet(onDismiss: () -> Unit) {
             ProfileOption(
                 icon = Icons.Default.ExitToApp,
                 title = "Exit",
-                subtitle = "Return to welcome screen",
+                subtitle = "Close the app",
                 onClick = {
-                    val intent = Intent(context, GetStartedActivity::class.java)
-                    context.startActivity(intent)
+                    // Exit the app
+                    (context as? ComponentActivity)?.finish()
                     onDismiss()
                 }
             )
